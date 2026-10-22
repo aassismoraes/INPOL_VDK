@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
 
-ENV ASPNETCORE_URLS=http://+:9300;http://+80
+ENV ASPNETCORE_URLS=http://+:8300;http://+80
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # This stage is used to build the service project
