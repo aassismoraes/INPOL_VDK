@@ -14,11 +14,11 @@
             </div>
 
             <div class="card-body">
-                <!-- Formulário Principal -->
                 <form method="post" id="formEditarEvento">
                     <input type="hidden" asp-for="Id" />
-                    <input type="hidden" asp-for="EventoInput.Latitude" id="latInput" />
-                    <input type="hidden" asp-for="EventoInput.Longitude" id="lngInput" />
+                    <!-- Campos Ocultos Padronizados para Coordenadas -->
+                    <input type="hidden" asp-for="EventoInput.Latitude" id="hiddenLatitude" />
+                    <input type="hidden" asp-for="EventoInput.Longitude" id="hiddenLongitude" />
 
                     <!-- Container para manter os IDs dos Cabos no Post -->
                     <div id="containerInputsCabos">
@@ -108,9 +108,21 @@
                         </div>
                     </div>
 
-                    <!-- Bloco de Endereço Detalhado -->
+                    <!-- Bloco de Endereço Detalhado e GPS (Sincronizado com Cadastrar) -->
                     <hr class="my-4 text-muted opacity-25" />
-                    <h6 class="fw-bold text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>ENDEREÇO DO EVENTO</h6>
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                        <h6 class="fw-bold text-muted mb-0"><i class="bi bi-geo-alt-fill me-1"></i>ENDEREÇO DO EVENTO</h6>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span id="badgeGps" class="badge bg-secondary py-2"><i class="bi bi-satellite me-1"></i>GPS Pendente</span>
+                            <button type="button" class="btn btn-sm btn-info text-white rounded-pill fw-medium d-none" id="btnVerMapa" onclick="abrirMapa()">
+                                <i class="bi bi-map me-1"></i> Ver/Ajustar Mapa
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill fw-medium" onclick="obterLocalizacaoAtual()">
+                                <i class="bi bi-crosshair me-1"></i> Meu local atual
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-12 col-md-5">
@@ -134,7 +146,7 @@
                         </div>
                         <div class="col-4 col-md-3">
                             <label asp-for="EventoInput.Numero" class="form-label fw-medium">Número</label>
-                            <input asp-for="EventoInput.Numero" class="form-control" placeholder="S/N" />
+                            <input asp-for="EventoInput.Numero" id="txtNumero" class="form-control" placeholder="S/N" />
                             <span asp-validation-for="EventoInput.Numero" class="text-danger small"></span>
                         </div>
                     </div>
@@ -269,15 +281,91 @@
     </div>
 </div>
 
+<!-- Modal Mapa Interativo -->
+<div class="modal fade" id="modalMapa" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light pb-2">
+                <h5 class="modal-title fw-bold text-primary"><i class="bi bi-geo-alt me-1"></i> Confirmar Localização</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-0 position-relative">
+                <div id="mapaPreview" style="height: 400px; width: 100%; z-index: 1;"></div>
+                <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-white bg-opacity-75 text-center small fw-bold text-primary" style="z-index: 1000;">
+                    <i class="bi bi-arrows-move me-1"></i> Pode arrastar o marcador azul para ajustar o local exato.
+                </div>
+            </div>
+            <div class="modal-footer bg-light pt-2 pb-2">
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Confirmar Posição</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 
+    <!-- CSS e JS do Leaflet (Mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <script>
+        let map;
+        let marker;
+
         document.addEventListener("DOMContentLoaded", function () {
             const txtCep = document.getElementById("txtCep");
             const btnBuscarCep = document.getElementById("btnBuscarCep");
             const iconBuscarCep = document.getElementById("iconBuscarCep");
             const spinBuscarCep = document.getElementById("spinBuscarCep");
+            const txtNumero = document.getElementById("txtNumero");
+            const txtCidade = document.getElementById("txtCidade");
+            const formEditar = document.getElementById("formEditarEvento");
+            const modalElement = document.getElementById('modalMapa');
+
+            // Verifica se a página já carregou com um GPS (modo edição)
+            const latAtual = document.getElementById("hiddenLatitude").value;
+            if (latAtual) {
+                atualizarInterfaceGps(true);
+            }
+
+            // Refaz o layout do mapa se a modal abrir
+            if (modalElement) {
+                modalElement.addEventListener('shown.bs.modal', function () {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                });
+            }
+
+            // MÁSCARA DO CEP
+            if (txtCep) {
+                txtCep.addEventListener('input', function (e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 5) {
+                        value = value.substring(0, 5) + '-' + value.substring(5, 8);
+                    }
+                    e.target.value = value;
+                });
+            }
+
+            // BUSCAR COORDENADAS
+            if (txtNumero) txtNumero.addEventListener("blur", buscarCoordenadasDaMorada);
+            if (txtCidade) txtCidade.addEventListener("blur", buscarCoordenadasDaMorada);
+
+            // VALIDAÇÃO ANTES DO SUBMIT
+            if (formEditar) {
+                formEditar.addEventListener("submit", async function(e) {
+                    const lat = document.getElementById("hiddenLatitude").value;
+                    const logradouro = document.getElementById("txtLogradouro").value;
+                    
+                    if (!lat && logradouro) {
+                        e.preventDefault(); 
+                        await buscarCoordenadasDaMorada(); 
+                        this.submit(); 
+                    }
+                });
+            }
 
             async function buscarCep() {
                 const cep = txtCep.value.replace(/\D/g, '');
@@ -296,6 +384,8 @@
                         document.getElementById("txtBairro").value = data.bairro || '';
                         document.getElementById("txtCidade").value = data.localidade || '';
                         document.getElementById("txtUf").value = data.uf || '';
+                        
+                        buscarCoordenadasDaMorada();
                     }
                 } catch (e) {
                     console.error("Erro ao buscar CEP:", e);
@@ -310,6 +400,128 @@
             txtCep?.addEventListener("blur", buscarCep);
         });
 
+        function inicializarOuAtualizarMapa(lat, lng) {
+            if (!map) {
+                map = L.map('mapaPreview').setView([lat, lng], 17);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+                marker.on('dragend', function () {
+                    const position = marker.getLatLng();
+                    document.getElementById("hiddenLatitude").value = position.lat;
+                    document.getElementById("hiddenLongitude").value = position.lng;
+                });
+            } else {
+                map.setView([lat, lng], 17);
+                marker.setLatLng([lat, lng]);
+            }
+        }
+
+        function abrirMapa() {
+            let lat = document.getElementById("hiddenLatitude").value;
+            let lng = document.getElementById("hiddenLongitude").value;
+            
+            // Corrige vírgulas para pontos se houver problemas de localidade pt-BR no hidden input
+            if (lat) lat = lat.replace(',', '.');
+            if (lng) lng = lng.replace(',', '.');
+            
+            if (lat && lng) {
+                const modal = new bootstrap.Modal(document.getElementById('modalMapa'));
+                modal.show();
+                inicializarOuAtualizarMapa(parseFloat(lat), parseFloat(lng));
+            }
+        }
+
+        function atualizarInterfaceGps(encontrado, carregando = false) {
+            const badgeGps = document.getElementById("badgeGps");
+            const btnVerMapa = document.getElementById("btnVerMapa");
+
+            if (carregando) {
+                if (badgeGps) {
+                    badgeGps.className = "badge bg-warning text-dark py-2";
+                    badgeGps.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processando GPS...';
+                }
+                if (btnVerMapa) btnVerMapa.classList.add("d-none");
+                return;
+            }
+
+            if (encontrado) {
+                if (badgeGps) {
+                    badgeGps.className = "badge bg-success py-2";
+                    badgeGps.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>GPS Registrado';
+                }
+                if (btnVerMapa) btnVerMapa.classList.remove("d-none");
+            } else {
+                if (badgeGps) {
+                    badgeGps.className = "badge bg-danger py-2";
+                    badgeGps.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>GPS Não Encontrado';
+                }
+                if (btnVerMapa) btnVerMapa.classList.add("d-none");
+            }
+        }
+
+        async function buscarCoordenadasDaMorada() {
+            const rua = document.getElementById("txtLogradouro").value;
+            const numero = document.getElementById("txtNumero").value;
+            const cidade = document.getElementById("txtCidade").value;
+            const uf = document.getElementById("txtUf").value;
+
+            if (!rua || !cidade || !uf) return;
+
+            atualizarInterfaceGps(false, true);
+
+            const query = `${numero ? numero + ' ' : ''}${rua}, ${cidade}, ${uf}, Brasil`;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    document.getElementById("hiddenLatitude").value = data[0].lat;
+                    document.getElementById("hiddenLongitude").value = data[0].lon;
+                    
+                    atualizarInterfaceGps(true);
+                } else {
+                    atualizarInterfaceGps(false);
+                }
+            } catch (e) {
+                console.error("Erro ao buscar coordenadas:", e);
+                atualizarInterfaceGps(false);
+            }
+        }
+
+        function obterLocalizacaoAtual() {
+            if (!navigator.geolocation) {
+                alert('A geolocalização não é suportada pelo seu navegador.');
+                return;
+            }
+
+            atualizarInterfaceGps(false, true);
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Força pontos no log das decimais para evitar falhas de gravação em culturas Pt-Br
+                    document.getElementById("hiddenLatitude").value = position.coords.latitude.toString().replace(',', '.');
+                    document.getElementById("hiddenLongitude").value = position.coords.longitude.toString().replace(',', '.');
+                    
+                    atualizarInterfaceGps(true);
+                    abrirMapa();
+                },
+                (error) => {
+                    console.error("Erro ao capturar localização do dispositivo:", error);
+                    atualizarInterfaceGps(false);
+                    alert('Não foi possível obter a sua localização atual. Verifique as permissões de localização do navegador.');
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        }
+
+        // Funções de Gerenciamento de Cabos
         function alternarCaboPeloModal(checkbox) {
             const id = checkbox.value;
             const nome = checkbox.getAttribute('data-nome');

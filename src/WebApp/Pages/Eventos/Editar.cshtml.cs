@@ -91,7 +91,6 @@ public class EditarModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        // Validação adicional de consistência de datas
         if (EventoInput.DataHoraFim.HasValue && EventoInput.DataHoraFim.Value < EventoInput.DataHoraInicio)
         {
             ModelState.AddModelError("EventoInput.DataHoraFim", "A data/hora de término não pode ser anterior à de início.");
@@ -119,7 +118,6 @@ public class EditarModel : PageModel
             return NotFound();
         }
 
-        // Se o evento foi cancelado nesta edição, registra no histórico de movimentos
         if (evento.Ativo && !Ativo)
         {
             var usuarioNome = User.FindFirstValue(ClaimTypes.Name) ?? User.Identity?.Name ?? "Administrador";
@@ -164,7 +162,7 @@ public class EditarModel : PageModel
         _context.Update(evento);
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Evento atualizado com sucesso!";
+        TempData["SuccessMessage"] = "Evento atualizado com sucesso e GPS sincronizado!";
         return RedirectToPage("/Eventos/Index");
     }
 

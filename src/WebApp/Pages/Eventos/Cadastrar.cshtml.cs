@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 using WebApp._0___Utils;
 
 namespace WebApp.Pages.Eventos;
@@ -22,6 +23,13 @@ public class CadastrarModel : PageModel
 
     [BindProperty]
     public CadastroEventoInputModel EventoInput { get; set; } = new();
+
+    // Propriedades para receber as coordenadas geográficas capturadas pelo JavaScript no formulário
+    [BindProperty]
+    public double? Latitude { get; set; }
+
+    [BindProperty]
+    public double? Longitude { get; set; }
 
     public List<CaboEleitoralOptionDto> CabosEleitoraisDisponiveis { get; set; } = new();
 
@@ -65,12 +73,10 @@ public class CadastrarModel : PageModel
             DataHoraInicio = EventoInput.DataHoraInicio.ParaHorarioBrasilia(),
             DataHoraFim = EventoInput.DataHoraFim.Value.ParaHorarioBrasilia(),
 
-            // Configuração do horário de Check-in (GPS / Presença)
             MinutosAntecedenciaCheckIn = EventoInput.MinutosAntecedenciaCheckIn > 0
                 ? EventoInput.MinutosAntecedenciaCheckIn
                 : 20,
 
-            // Endereço
             Cep = EventoInput.Cep,
             Logradouro = EventoInput.Logradouro,
             Numero = EventoInput.Numero,
@@ -81,6 +87,12 @@ public class CadastrarModel : PageModel
 
             CabosEleitoraisConvidados = new List<EventoCaboEleitoralEntity>()
         };
+
+        // Regista o ponto geográfico com SRID 4326 (Padrão Global GPS - WGS 84)
+        if (Latitude.HasValue && Longitude.HasValue)
+        {
+            novoEvento.Coordenadas = new Point(Longitude.Value, Latitude.Value) { SRID = 4326 };
+        }
 
         if (EventoInput.CabosEleitoraisIds != null && EventoInput.CabosEleitoraisIds.Any())
         {
@@ -96,7 +108,7 @@ public class CadastrarModel : PageModel
         _context.Eventos.Add(novoEvento);
         await _context.SaveChangesAsync();
 
-        TempData["SuccessMessage"] = "Evento agendado com sucesso!";
+        TempData["SuccessMessage"] = "Evento agendado com sucesso e GPS registado!";
         return RedirectToPage("/Eventos/Index");
     }
 
