@@ -1,14 +1,14 @@
 trigger:
   branches:
     include:
-      - master
+      - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
   dockerHubId: 'inovasist'
-  imageName: 'inovasist/inpol'
+  imageName: 'inovasist/inpol-vdk'
   tag: 'latest'
   dockerHubPassword: $(dockerHubPassword)
 
@@ -16,8 +16,8 @@ steps:
  - task: Docker@2
    displayName: 'Build and Push to Docker Hub'
    inputs:
-     containerRegistry: 'dockerhub'
-     repository: 'inovasist/inpol'
+     containerRegistry: 'dockerhub-INPOL-VDK'
+     repository: 'inovasist/inpol-vdk'
      command: 'buildAndPush'
      Dockerfile: '**/Dockerfile'
      # ADICIONE AS LINHAS ABAIXO:
