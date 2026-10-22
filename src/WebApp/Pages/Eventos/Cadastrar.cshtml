@@ -114,7 +114,7 @@
                             <label asp-for="EventoInput.Cep" class="form-label fw-medium">CEP</label>
                             <div class="input-group">
                                 <input asp-for="EventoInput.Cep" id="txtCep" class="form-control" placeholder="00000-000" maxlength="9" />
-                                <button class="btn btn-outline-secondary" type="button" id="btnBuscarCep">
+                                <button class="btn btn-outline-secondary" type="button" id="btnBuscarCep" title="Buscar por CEP">
                                     <i class="bi bi-search" id="iconBuscarCep"></i>
                                     <span class="spinner-border spinner-border-sm d-none" id="spinBuscarCep" role="status" aria-hidden="true"></span>
                                 </button>
@@ -124,9 +124,18 @@
                     </div>
 
                     <div class="row g-2 mb-3">
+                        <!-- Campo de Logradouro com Autocomplete -->
                         <div class="col-12 col-sm-8 col-md-9">
                             <label asp-for="EventoInput.Logradouro" class="form-label fw-medium">Logradouro / Rua</label>
-                            <input asp-for="EventoInput.Logradouro" id="txtLogradouro" class="form-control" placeholder="Rua, Avenida, Praça..." />
+                            <div class="input-group position-relative">
+                                <input asp-for="EventoInput.Logradouro" id="txtLogradouro" class="form-control" placeholder="Rua, Avenida, Praça..." autocomplete="off" />
+                                <button class="btn btn-outline-secondary" type="button" id="btnBuscarEndereco" title="Buscar coordenadas por este endereço">
+                                    <i class="bi bi-search" id="iconBuscarEndereco"></i>
+                                    <span class="spinner-border spinner-border-sm d-none" id="spinBuscarEndereco" role="status" aria-hidden="true"></span>
+                                </button>
+                                <!-- Lista de Autocomplete -->
+                                <ul id="listaAutocompleteEndereco" class="dropdown-menu w-100 shadow-lg" style="max-height: 280px; overflow-y: auto; position: absolute; top: 100%; z-index: 1050;"></ul>
+                            </div>
                             <span asp-validation-for="EventoInput.Logradouro" class="text-danger small"></span>
                         </div>
                         <div class="col-12 col-sm-4 col-md-3">
@@ -233,8 +242,8 @@
             </div>
             <div class="modal-body p-0 position-relative">
                 <div id="mapaPreview" style="height: 400px; width: 100%; z-index: 1;"></div>
-                <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-white bg-opacity-75 text-center small fw-bold text-primary" style="z-index: 1000;">
-                    <i class="bi bi-arrows-move me-1"></i> Pode arrastar o marcador azul para ajustar o local exato.
+                <div class="position-absolute bottom-0 start-0 w-100 p-2 bg-white bg-opacity-75 text-center small fw-bold text-primary" style="z-index: 1000; pointer-events: none;">
+                    <i class="bi bi-arrows-move me-1"></i> Você pode arrastar o marcador azul para ajustar o local exato.
                 </div>
             </div>
             <div class="modal-footer bg-light pt-2 pb-2">
@@ -255,22 +264,33 @@
         let map;
         let marker;
 
+        const ufMap = {
+            "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE", "Distrito Federal": "DF",
+            "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT", "Mato Grosso do Sul": "MS", "Minas Gerais": "MG",
+            "Pará": "PA", "Paraíba": "PB", "Paraná": "PR", "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+            "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR", "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO"
+        };
+
         document.addEventListener("DOMContentLoaded", function() {
             const txtCep = document.getElementById("txtCep");
             const btnBuscarCep = document.getElementById("btnBuscarCep");
             const iconBuscarCep = document.getElementById("iconBuscarCep");
             const spinBuscarCep = document.getElementById("spinBuscarCep");
+
+            const txtLogradouro = document.getElementById("txtLogradouro");
+            const btnBuscarEndereco = document.getElementById("btnBuscarEndereco");
+            const iconBuscarEndereco = document.getElementById("iconBuscarEndereco");
+            const spinBuscarEndereco = document.getElementById("spinBuscarEndereco");
+            const listaAutocomplete = document.getElementById("listaAutocompleteEndereco");
+
             const txtNumero = document.getElementById("txtNumero");
             const txtCidade = document.getElementById("txtCidade");
             const formCadastrar = document.getElementById("formCadastrarEvento");
             const modalElement = document.getElementById('modalMapa');
 
-            // Verifica se o mapa precisa ser re-renderizado após a modal abrir
             if (modalElement) {
                 modalElement.addEventListener('shown.bs.modal', function () {
-                    if (map) {
-                        map.invalidateSize();
-                    }
+                    if (map) { map.invalidateSize(); }
                 });
             }
 
@@ -285,11 +305,11 @@
                 });
             }
 
-            // BUSCAR COORDENADAS
+            // BUSCAR GPS NO BLUR DOS CAMPOS PADRÃO
             if (txtNumero) txtNumero.addEventListener("blur", buscarCoordenadasDaMorada);
             if (txtCidade) txtCidade.addEventListener("blur", buscarCoordenadasDaMorada);
 
-            // VALIDAÇÃO ANTES DO SUBMIT
+            // VALIDAÇÃO ANTES DO SUBMIT (GARANTE QUE TEM GPS)
             if (formCadastrar) {
                 formCadastrar.addEventListener("submit", async function(e) {
                     const lat = document.getElementById("hiddenLatitude").value;
@@ -303,6 +323,78 @@
                 });
             }
 
+            // AUTOCOMPLETE DE ENDEREÇO
+            let debounceTimer;
+            if (txtLogradouro && listaAutocomplete) {
+                txtLogradouro.addEventListener("input", function() {
+                    clearTimeout(debounceTimer);
+                    const query = this.value;
+
+                    if (query.length < 4) {
+                        listaAutocomplete.classList.remove("show");
+                        return;
+                    }
+
+                    debounceTimer = setTimeout(async () => {
+                        const uf = document.getElementById("txtUf").value;
+                        const cidade = document.getElementById("txtCidade").value;
+
+                        let searchQuery = query;
+                        if (cidade) searchQuery += `, ${cidade}`;
+                        if (uf) searchQuery += `, ${uf}`;
+
+                        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&addressdetails=1&countrycodes=br&limit=5`;
+
+                        try {
+                            const response = await fetch(url);
+                            const data = await response.json();
+
+                            listaAutocomplete.innerHTML = "";
+                            if (data && data.length > 0) {
+                                data.forEach(item => {
+                                    const addr = item.address;
+                                    const nomeRua = addr.road || addr.pedestrian || item.name || '';
+                                    const bairro = addr.suburb || addr.neighbourhood || addr.city_district || '';
+                                    const cid = addr.city || addr.town || addr.village || addr.municipality || '';
+                                    const estado = addr.state || '';
+
+                                    const li = document.createElement("li");
+                                    li.innerHTML = `<a class="dropdown-item" style="cursor: pointer; white-space: normal; border-bottom: 1px solid #eee;">
+                                        <strong>${nomeRua}</strong><br>
+                                        <small class="text-muted">${bairro ? bairro + ' - ' : ''}${cid} - ${estado}</small>
+                                    </a>`;
+
+                                    li.addEventListener("click", async function() {
+                                        txtLogradouro.value = nomeRua;
+                                        document.getElementById("hiddenLatitude").value = item.lat;
+                                        document.getElementById("hiddenLongitude").value = item.lon;
+
+                                        listaAutocomplete.classList.remove("show");
+
+                                        await preencherEnderecoPorCoordenadas(item.lat, item.lon);
+                                        atualizarInterfaceGps(true);
+                                        abrirMapa();
+                                    });
+                                    listaAutocomplete.appendChild(li);
+                                });
+                                listaAutocomplete.classList.add("show");
+                            } else {
+                                listaAutocomplete.classList.remove("show");
+                            }
+                        } catch(e) {
+                            console.error("Erro no autocomplete:", e);
+                        }
+                    }, 600);
+                });
+
+                document.addEventListener("click", function(e) {
+                    if (e.target !== txtLogradouro && !listaAutocomplete.contains(e.target)) {
+                        listaAutocomplete.classList.remove("show");
+                    }
+                });
+            }
+
+            // FUNÇÃO: BUSCAR POR CEP
             async function buscarCep() {
                 const cep = txtCep.value.replace(/\D/g, '');
                 if (cep.length !== 8) return;
@@ -334,9 +426,86 @@
 
             btnBuscarCep?.addEventListener("click", buscarCep);
             txtCep?.addEventListener("blur", buscarCep);
+
+            // FUNÇÃO: BUSCAR POR ENDEREÇO LIVRE (LUPA NO LOGRADOURO)
+            btnBuscarEndereco?.addEventListener("click", async function() {
+                const rua = document.getElementById("txtLogradouro").value;
+                const cidade = document.getElementById("txtCidade").value;
+                const uf = document.getElementById("txtUf").value;
+
+                if (!rua) {
+                    alert("Digite ao menos o Logradouro/Rua para realizar a busca.");
+                    return;
+                }
+
+                if (iconBuscarEndereco) iconBuscarEndereco.classList.add("d-none");
+                if (spinBuscarEndereco) spinBuscarEndereco.classList.remove("d-none");
+                btnBuscarEndereco.disabled = true;
+
+                const query = `${rua}${cidade ? ', ' + cidade : ''}${uf ? ', ' + uf : ''}, Brasil`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const lat = data[0].lat;
+                        const lng = data[0].lon;
+                        document.getElementById("hiddenLatitude").value = lat;
+                        document.getElementById("hiddenLongitude").value = lng;
+
+                        await preencherEnderecoPorCoordenadas(lat, lng);
+                        atualizarInterfaceGps(true);
+                        abrirMapa();
+                    } else {
+                        atualizarInterfaceGps(false);
+                        alert("Endereço não encontrado no mapa.");
+                    }
+                } catch (e) {
+                    console.error("Erro na busca por endereço:", e);
+                    atualizarInterfaceGps(false);
+                } finally {
+                    if (iconBuscarEndereco) iconBuscarEndereco.classList.remove("d-none");
+                    if (spinBuscarEndereco) spinBuscarEndereco.classList.add("d-none");
+                    btnBuscarEndereco.disabled = false;
+                }
+            });
         });
 
-        // Controle do Mapa
+        // REVERSE GEOCODING (ATUALIZA O FORMULÁRIO COM BASE NO GPS)
+        async function preencherEnderecoPorCoordenadas(lat, lng) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const addr = data.address;
+                    if (addr.road || addr.pedestrian) document.getElementById("txtLogradouro").value = addr.road || addr.pedestrian || '';
+                    if (addr.suburb || addr.neighbourhood || addr.city_district) document.getElementById("txtBairro").value = addr.suburb || addr.neighbourhood || addr.city_district || '';
+                    if (addr.city || addr.town || addr.village || addr.municipality) document.getElementById("txtCidade").value = addr.city || addr.town || addr.village || addr.municipality || '';
+                    if (addr.house_number) document.getElementById("txtNumero").value = addr.house_number;
+
+                    if (addr.state && ufMap[addr.state]) {
+                        document.getElementById("txtUf").value = ufMap[addr.state];
+                    } else if (addr.state) {
+                        document.getElementById("txtUf").value = addr.state.substring(0, 2).toUpperCase(); // Fallback genérico
+                    }
+
+                    if (addr.postcode) {
+                        let cepStr = addr.postcode.replace(/\D/g, '');
+                        if (cepStr.length === 8) {
+                            cepStr = cepStr.substring(0, 5) + '-' + cepStr.substring(5, 8);
+                        }
+                        document.getElementById("txtCep").value = cepStr;
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao buscar endereço reverso:", e);
+            }
+        }
+
+        // MAPA LEAFLET E EVENTO DE DRAG DO MARCADOR
         function inicializarOuAtualizarMapa(lat, lng) {
             if (!map) {
                 map = L.map('mapaPreview').setView([lat, lng], 17);
@@ -347,11 +516,13 @@
 
                 marker = L.marker([lat, lng], { draggable: true }).addTo(map);
 
-                // Quando arrastar o marcador, atualiza as coordenadas ocultas
-                marker.on('dragend', function () {
+                marker.on('dragend', async function () {
                     const position = marker.getLatLng();
                     document.getElementById("hiddenLatitude").value = position.lat;
                     document.getElementById("hiddenLongitude").value = position.lng;
+
+                    // Altera o formulário com base na nova posição do Pin
+                    await preencherEnderecoPorCoordenadas(position.lat, position.lng);
                 });
             } else {
                 map.setView([lat, lng], 17);
@@ -360,8 +531,11 @@
         }
 
         function abrirMapa() {
-            const lat = document.getElementById("hiddenLatitude").value;
-            const lng = document.getElementById("hiddenLongitude").value;
+            let lat = document.getElementById("hiddenLatitude").value;
+            let lng = document.getElementById("hiddenLongitude").value;
+
+            if (lat) lat = lat.replace(',', '.');
+            if (lng) lng = lng.replace(',', '.');
 
             if (lat && lng) {
                 const modal = new bootstrap.Modal(document.getElementById('modalMapa'));
@@ -438,12 +612,19 @@
             atualizarInterfaceGps(false, true);
 
             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    document.getElementById("hiddenLatitude").value = position.coords.latitude;
-                    document.getElementById("hiddenLongitude").value = position.coords.longitude;
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    document.getElementById("hiddenLatitude").value = lat.toString().replace(',', '.');
+                    document.getElementById("hiddenLongitude").value = lng.toString().replace(',', '.');
 
                     atualizarInterfaceGps(true);
-                    abrirMapa(); // Abre o mapa automaticamente para ele conferir o local
+
+                    // Preenche todo o endereço reverso
+                    await preencherEnderecoPorCoordenadas(lat, lng);
+
+                    abrirMapa();
                 },
                 (error) => {
                     console.error("Erro ao capturar localização do dispositivo:", error);
@@ -454,6 +635,7 @@
             );
         }
 
+        // Cabos Eleitorais...
         function atualizarContadorCabos() {
             const checados = document.querySelectorAll('.chk-cabo:checked').length;
             document.getElementById('cntSelecionados').innerText = `${checados} selecionado(s)`;
