@@ -4,7 +4,7 @@ trigger:
       - main
 
 pool:
-  vmImage: 'ubuntu-26'
+  vmImage: 'ubuntu-latest'
 
 variables:
   dockerHubId: 'inovasist'
