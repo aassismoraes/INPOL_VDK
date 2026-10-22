@@ -16,7 +16,7 @@ steps:
  - task: Docker@2
    displayName: 'Build and Push to Docker Hub'
    inputs:
-     containerRegistry: 'dockerhub'
+     containerRegistry: 'dockerhub-INPOL-VDK'
      repository: 'inovasist/inpol-vdk'
      command: 'buildAndPush'
      Dockerfile: '**/Dockerfile'
