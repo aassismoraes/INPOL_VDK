@@ -1,0 +1,164 @@
+﻿@page
+@model WebApp.Pages.IndexModel
+@{
+    ViewData["Title"] = "Dashboard Geral";
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-1 text-dark"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard do Gabinete</h4>
+    <p class="text-muted small mb-0">Resumo de atividades, agenda, apoiadores e demandas prioritárias.</p>
+</div>
+
+<!-- Métricas de Apoiadores -->
+<h6 class="fw-bold text-muted mb-3"><i class="bi bi-people me-2"></i>BASE DE APOIADORES</h6>
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <a asp-page="/Apoiadores/Index" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-dark text-white card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50 fw-medium d-block">Total de Apoiadores</small>
+                            <h3 class="fw-bold mb-0">@Model.TotalApoiadores</h3>
+                        </div>
+                        <i class="bi bi-person-vcard display-6 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Métricas de Eventos / Agenda -->
+<h6 class="fw-bold text-muted mb-3"><i class="bi bi-calendar-event me-2"></i>AGENDA E EVENTOS</h6>
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <a asp-page="/Eventos/Index" asp-route-Periodo="Hoje" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-success text-white card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50 fw-medium d-block">Hoje</small>
+                            <h3 class="fw-bold mb-0">@Model.TotalEventosHoje</h3>
+                        </div>
+                        <i class="bi bi-calendar-check display-6 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a asp-page="/Eventos/Index" asp-route-Periodo="Semana" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-primary text-white card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50 fw-medium d-block">Próximos 7 dias</small>
+                            <h3 class="fw-bold mb-0">@Model.TotalEventosSemana</h3>
+                        </div>
+                        <i class="bi bi-calendar-week display-6 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Métricas de Demandas -->
+<h6 class="fw-bold text-muted mb-3"><i class="bi bi-card-checklist me-2"></i>DEMANDAS E SOLICITAÇÕES</h6>
+<div class="row g-3 mb-4">
+    <div class="col-4">
+        <a asp-page="/Demandas/Index" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-primary text-white card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="fw-medium d-block text-white-50">Total Cadastradas</small>
+                            <h3 class="fw-bold mb-0">@Model.TotalDemandas</h3>
+                        </div>
+                        <i class="bi bi-inbox display-6 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-4">
+        <a asp-page="/Demandas/Index" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-warning text-dark card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="fw-medium d-block text-dark-50">Pendentes</small>
+                            <h3 class="fw-bold mb-0">@Model.DemandasPendentes</h3>
+                        </div>
+                        <i class="bi bi-hourglass-split display-6 opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-4">
+        <a asp-page="/Demandas/Index" class="text-decoration-none">
+            <div class="card border-0 shadow-sm bg-success text-white card-hover-effect">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="fw-medium d-block text-white-50">Concluídas</small>
+                            <h3 class="fw-bold mb-0">@Model.DemandasConcluidas</h3>
+                        </div>
+                        <i class="bi bi-check2-circle display-6 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Lista dos Próximos Compromissos -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history me-2 text-success"></i>Próximos Compromissos</h6>
+        <a asp-page="/Eventos/Index" class="btn btn-sm btn-outline-success rounded-pill fw-medium">Ver todos</a>
+    </div>
+    <div class="card-body">
+        @if (!Model.ProximosEventos.Any())
+        {
+            <p class="text-muted text-center py-3 mb-0">Nenhum evento agendado para os próximos dias.</p>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var ev in Model.ProximosEventos)
+                {
+                    <a asp-page="/Eventos/Detalhes" asp-route-id="@ev.Id" class="list-group-item list-group-item-action border-0 px-0 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle mb-1">@ev.Tipo</span>
+                                <h6 class="fw-bold mb-0 text-dark">@ev.Titulo</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-geo-alt me-1"></i>@(string.IsNullOrEmpty(ev.Local) ? "Sem local cadastrado" : ev.Local)
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-success d-block small">@ev.DataHoraInicio.ToString("dd/MM")</span>
+                                <small class="text-muted">@ev.DataHoraInicio.ToString("HH:mm")</small>
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .card-hover-effect {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+
+        .card-hover-effect:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+        }
+</style>

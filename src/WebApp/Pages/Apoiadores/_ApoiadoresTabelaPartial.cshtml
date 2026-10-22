@@ -1,0 +1,149 @@
+﻿@model WebApp.Pages.Apoiadores.IndexModel
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-0">
+        @if (Model.Apoiadores.Count == 0)
+        {
+            <div class="text-center py-5 bg-light rounded-3">
+                <i class="bi bi-people text-muted display-4"></i>
+                <p class="text-muted mt-2 mb-0">Nenhum apoiador encontrado com os filtros selecionados.</p>
+                @if (!string.IsNullOrEmpty(Model.TermoBusca) || !string.IsNullOrEmpty(Model.StatusFiltro) || Model.PadrinhoIdFiltro.HasValue)
+                {
+                    <button type="button" onclick="limparFiltrosAjax()" class="btn btn-sm btn-primary rounded-pill mt-3 px-3">Limpar todos os filtros</button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap" style="font-size: 0.875rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome / Apelido</th>
+                            <th>Contato</th>
+                            <th>Localização</th>
+                            <th>Status</th>
+                            <th class="text-end px-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Apoiadores)
+                        {
+                            <tr>
+                                <td>
+                                    <strong class="text-dark">@item.Nome</strong>
+                                    @if (!string.IsNullOrEmpty(item.Apelido))
+                                    {
+                                        <br /><small class="text-muted">("@item.Apelido")</small>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="d-block"><i class="bi bi-telephone me-1 text-muted"></i>@item.Telefone</small>
+                                    @if (!string.IsNullOrEmpty(item.Email))
+                                    {
+                                        <small class="text-muted"><i class="bi bi-envelope me-1"></i>@item.Email</small>
+                                    }
+                                </td>
+                                <td>
+                                    <small><i class="bi bi-geo-alt me-1 text-muted"></i>@item.Bairro - @item.Cidade/@item.Uf</small>
+                                </td>
+                                <td>
+                                    <span class="badge @(item.StatusTexto == "ATIVO" ? "bg-success" : "bg-danger")">
+                                        @item.StatusTexto
+                                    </span>
+                                </td>
+                                <td class="text-end px-3">
+                                    <div class="d-flex justify-content-end align-items-center gap-1">
+                                        <a asp-page="Detalhes" asp-route-id="@item.Id" class="btn btn-sm btn-light text-primary rounded-circle p-2" title="Ver Detalhes">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-page="Editar" asp-route-id="@item.Id" class="btn btn-sm btn-light text-warning rounded-circle p-2" title="Editar">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-light text-danger rounded-circle p-2" data-bs-toggle="modal" data-bs-target="#modalExcluir-@item.Id" title="Excluir">
+                                            <i class="bi bi-trash-fill"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+                                    <div class="modal fade" id="modalExcluir-@item.Id" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content border-0 shadow">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Inativação</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body text-start">
+                                                    Deseja realmente inativar o apoiador <strong>@item.Nome</strong>?
+                                                </div>
+                                                <div class="modal-footer bg-light border-0">
+                                                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancelar</button>
+                                                    <form method="post" asp-page-handler="Deletar" asp-route-id="@item.Id">
+                                                        <button type="submit" class="btn btn-danger rounded-pill px-3 fw-bold">Confirmar</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Controles de Paginação no Padrão do Sistema com AJAX -->
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 p-3 border-top bg-light rounded-bottom">
+                <!-- Seletor de Quantidade por Página -->
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <span>Exibir:</span>
+                    <select id="selectTamanhoPagina" class="form-select form-select-sm" style="width: auto;" onchange="alterarTamanhoPaginaAjax(this.value)">
+                        <option value="5" selected="@(Model.TamanhoPagina == 5)">5</option>
+                        <option value="10" selected="@(Model.TamanhoPagina == 10)">10</option>
+                        <option value="20" selected="@(Model.TamanhoPagina == 20)">20</option>
+                        <option value="50" selected="@(Model.TamanhoPagina == 50)">50</option>
+                    </select>
+                    <span>registros (Mostrando <strong>@((Model.PaginaAtual - 1) * Model.TamanhoPagina + 1)</strong> a <strong>@(Math.Min(Model.PaginaAtual * Model.TamanhoPagina, Model.TotalRegistros))</strong> de <strong>@Model.TotalRegistros</strong>)</span>
+                </div>
+
+                <!-- Navegação de Páginas -->
+                @if (Model.TotalPaginas > 1)
+                {
+                    <nav aria-label="Navegação de página">
+                        <ul class="pagination pagination-sm m-0 shadow-sm">
+                            <!-- Botão Anterior -->
+                            <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" onclick="carregarPaginaAjax(@(Model.PaginaAtual - 1))">
+                                    <i class="bi bi-chevron-left"></i>
+                                </button>
+                            </li>
+
+                            <!-- Páginas -->
+                            @for (int i = 1; i <= Model.TotalPaginas; i++)
+                            {
+                                var pNum = i;
+                                if (i == 1 || i == Model.TotalPaginas || (i >= Model.PaginaAtual - 2 && i <= Model.PaginaAtual + 2))
+                                {
+                                    <li class="page-item @(i == Model.PaginaAtual ? "active fw-bold" : "")">
+                                        <button type="button" class="page-link" onclick="carregarPaginaAjax(@pNum)">@pNum</button>
+                                    </li>
+                                }
+                                else if (i == Model.PaginaAtual - 3 || i == Model.PaginaAtual + 3)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                            }
+
+                            <!-- Botão Próximo -->
+                            <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                                <button type="button" class="page-link" onclick="carregarPaginaAjax(@(Model.PaginaAtual + 1))">
+                                    <i class="bi bi-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>

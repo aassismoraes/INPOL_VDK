@@ -1,0 +1,373 @@
+﻿@page
+@model WebApp.Pages.Configuracoes.Usuarios.IndexModel
+@{
+    ViewData["Title"] = "Usuários do Gabinete";
+}
+
+<div class="container-fluid px-3 py-4">
+    <!-- Header da Página -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-people-fill text-primary me-2"></i>Usuários do Gabinete
+            </h4>
+            <p class="text-muted small mb-0">Gerencie a equipe autorizada a acessar o sistema via Google OAuth.</p>
+            <p class="text-muted small mb-0">
+                Utilização do plano: <strong>@Model.TotalUsuarios de @Model.LimiteUsuarios</strong> usuários cadastrados.
+            </p>
+        </div>
+
+        <!-- Desabilita o botão visualmente se atingiu o limite -->
+        @if (Model.TotalUsuarios >= Model.LimiteUsuarios)
+        {
+            <button type="button" class="btn btn-secondary rounded-pill px-3 fw-bold shadow-sm" disabled title="Limite de usuários atingido">
+                <i class="bi bi-lock-fill me-1"></i> Limite Atingido (@Model.TotalUsuarios/@Model.LimiteUsuarios)
+            </button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="abrirModalNovo()">
+                <i class="bi bi-person-plus-fill me-1"></i> Adicionar Usuário
+            </button>
+        }
+    </div>
+
+    <!-- Lista de Usuários -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Usuário</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Último Acesso</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.Usuarios)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                                    {
+                                        <img src="@user.AvatarUrl" class="rounded-circle me-3" width="40" height="40" alt="@user.Nome" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            @user.Nome.Substring(0, 1).ToUpper()
+                                        </div>
+                                    }
+                                    <div>
+                                        <div class="fw-bold text-dark">@user.Nome</div>
+                                        <small class="text-muted">@user.Email</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if (user.Perfil == "Administrador")
+                                {
+                                    <span class="badge bg-primary-subtle text-primary fw-semibold px-2 py-1">
+                                        <i class="bi bi-shield-lock-fill me-1"></i> Administrador
+                                    </span>
+                                }
+                                else if (user.Perfil == "Assessor")
+                                {
+                                    <span class="badge bg-info-subtle text-info-emphasis fw-semibold px-2 py-1">
+                                        <i class="bi bi-person-badge-fill me-1"></i> Assessor
+                                    </span>
+                                }
+                                else if (user.Perfil == "CaboEleitoral")
+                                {
+                                    <span class="badge bg-warning-subtle text-warning-emphasis fw-semibold px-2 py-1">
+                                        <i class="bi bi-megaphone-fill me-1"></i> Cabo Eleitoral
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary fw-semibold px-2 py-1">
+                                        @user.Perfil
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.Ativo)
+                                {
+                                    <span class="badge bg-success-subtle text-success fw-semibold px-2 py-1">
+                                        <i class="bi bi-circle-fill fs-6 me-1" style="font-size: 0.5rem !important;"></i> Ativo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger fw-semibold px-2 py-1">
+                                        <i class="bi bi-circle-fill fs-6 me-1" style="font-size: 0.5rem !important;"></i> Inativo
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    @(user.UltimoAcesso.HasValue ? user.UltimoAcesso.Value.ToString("dd/MM/yyyy HH:mm") : "Nunca acessou")
+                                </small>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex align-items-center justify-content-end gap-1">
+                                    <!-- Botão Editar -->
+                                    <button type="button" class="btn btn-sm btn-light rounded-circle p-2"
+                                            title="Editar"
+                                            onclick="abrirModalEditar('@user.Id', '@user.Nome', '@user.Email', '@user.Telefone', '@user.Perfil')">
+                                        <i class="bi bi-pencil-fill text-secondary"></i>
+                                    </button>
+
+                                    <!-- Botão Ativar/Desativar -->
+                                    <form method="post" asp-page-handler="AlternarStatus" asp-route-id="@user.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-light rounded-circle p-2" title="@(user.Ativo ? "Desativar" : "Ativar")">
+                                            <i class="bi @(user.Ativo ? "bi-slash-circle text-warning" : "bi-check-circle text-success")"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Formulário de Remoção com SweetAlert2 -->
+                                    <form method="post"
+                                          asp-page-handler="Remover"
+                                          asp-route-id="@user.Id"
+                                          class="d-inline form-remover"
+                                          data-nome="@user.Nome">
+                                        <button type="submit" class="btn btn-sm btn-light rounded-circle p-2" title="Remover">
+                                            <i class="bi bi-trash3-fill text-danger"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Salvar (Criar / Editar) -->
+<div class="modal fade" id="modalUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalUsuarioLabel">Adicionar Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Salvar">
+                <div class="modal-body py-4">
+                    <input type="hidden" asp-for="Input.Id" id="inputId" />
+
+                    <!-- Seleção do Perfil -->
+                    <div class="mb-3">
+                        <label asp-for="Input.Perfil" class="form-label fw-medium text-dark">Perfil de Acesso</label>
+                        <select asp-for="Input.Perfil" id="inputPerfil" class="form-select rounded-3" onchange="alternarExibicaoCaboEleitoral()">
+                            <option value="Assessor">Assessor</option>
+                            <option value="Administrador">Administrador</option>
+                            <option value="Atendimento">Atendimento</option>
+                            <option value="CaboEleitoral">Cabo Eleitoral</option>
+                        </select>
+                        <span asp-validation-for="Input.Perfil" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Bloco de Seleção/Busca do Cabo Eleitoral (Exibido se Perfil == CaboEleitoral) -->
+                    <div id="boxBuscaCabo" class="mb-3 d-none">
+                        <label class="form-label fw-medium text-dark"><i class="bi bi-search me-1"></i>Buscar e Vincular Cabo Eleitoral</label>
+                        <input type="text" id="filtroCabos" class="form-control form-control-sm mb-2" placeholder="🔍 Filtrar por nome, e-mail ou área..." onkeyup="filtrarCabos()" />
+
+                        <div class="border rounded-3 p-2 bg-light" style="max-height: 160px; overflow-y: auto;">
+                            @if (!Model.CabosEleitoraisDisponiveis.Any())
+                            {
+                                <small class="text-muted d-block text-center py-2">Nenhum cabo eleitoral ativo cadastrado.</small>
+                            }
+                            else
+                            {
+                                @foreach (var cabo in Model.CabosEleitoraisDisponiveis)
+                                {
+                                    <div class="form-check item-cabo py-1 border-bottom border-light-subtle">
+                                        <input class="form-check-input rd-cabo"
+                                               type="radio"
+                                               name="caboSelecionadoRadio"
+                                               id="cabo_@cabo.Id"
+                                               data-nome="@cabo.Nome"
+                                               data-email="@cabo.Email"
+                                               data-telefone="@cabo.Telefone"
+                                               onchange="selecionarCaboEleitoral(this)" />
+                                        <label class="form-check-label d-flex justify-content-between align-items-center w-100 pe-2 cursor-pointer" for="cabo_@cabo.Id">
+                                            <div>
+                                                <span class="fw-medium text-dark label-nome d-block">@cabo.Nome</span>
+                                                <small class="text-muted label-email">@(cabo.Email ?? "Sem e-mail")</small>
+                                            </div>
+                                            <small class="badge bg-secondary-subtle text-secondary label-info">
+                                                @(string.IsNullOrWhiteSpace(cabo.AreaInfluencia) ? cabo.Bairro ?? "Geral" : cabo.AreaInfluencia)
+                                            </small>
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Nome" class="form-label fw-medium text-dark">Nome Completo</label>
+                        <input asp-for="Input.Nome" id="inputNome" class="form-control rounded-3" placeholder="Ex: Maria Silva" />
+                        <span asp-validation-for="Input.Nome" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label fw-medium text-dark">E-mail do Google</label>
+                        <input asp-for="Input.Email" id="inputEmail" type="email" class="form-control rounded-3" placeholder="usuario@gmail.com" />
+                        <small class="text-muted d-block mt-1">Este e-mail será o único autorizado a logar nesta conta.</small>
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Telefone" class="form-label fw-medium text-dark">Telefone (Opcional)</label>
+                        <input asp-for="Input.Telefone" id="inputTelefone" class="form-control rounded-3" placeholder="(00) 00000-0000" />
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-medium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Salvar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        let modalUsuario;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            modalUsuario = new bootstrap.Modal(document.getElementById('modalUsuario'));
+
+            const formsRemover = document.querySelectorAll('.form-remover');
+            formsRemover.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const nomeItem = this.getAttribute('data-nome') || 'este usuário';
+
+                    Swal.fire({
+                        title: 'Tem certeza?',
+                        text: `Você está prestes a remover "${nomeItem}". Esta ação não poderá ser desfeita!`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Sim, remover!',
+                        cancelButtonText: 'Cancelar',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.submit();
+                        }
+                    });
+                });
+            });
+        });
+
+        function alternarExibicaoCaboEleitoral() {
+            const perfil = document.getElementById('inputPerfil').value;
+            const boxBusca = document.getElementById('boxBuscaCabo');
+
+            if (perfil === 'CaboEleitoral') {
+                boxBusca.classList.remove('d-none');
+            } else {
+                boxBusca.classList.add('d-none');
+            }
+        }
+
+        function selecionarCaboEleitoral(radioElement) {
+            const nome = radioElement.getAttribute('data-nome') || '';
+            const email = radioElement.getAttribute('data-email') || '';
+            const telefone = radioElement.getAttribute('data-telefone') || '';
+
+            document.getElementById('inputNome').value = nome;
+            document.getElementById('inputEmail').value = email;
+            document.getElementById('inputTelefone').value = telefone;
+        }
+
+        function filtrarCabos() {
+            const termo = document.getElementById('filtroCabos').value.toLowerCase();
+            const itens = document.querySelectorAll('#boxBuscaCabo .item-cabo');
+
+            itens.forEach(item => {
+                const nome = item.querySelector('.label-nome')?.innerText.toLowerCase() || '';
+                const email = item.querySelector('.label-email')?.innerText.toLowerCase() || '';
+                const info = item.querySelector('.label-info')?.innerText.toLowerCase() || '';
+
+                if (nome.includes(termo) || email.includes(termo) || info.includes(termo)) {
+                    item.classList.remove('d-none');
+                } else {
+                    item.classList.add('d-none');
+                }
+            });
+        }
+
+        function abrirModalNovo() {
+            document.getElementById('modalUsuarioLabel').innerText = "Adicionar Usuário";
+            document.getElementById('inputId').value = "";
+            document.getElementById('inputNome').value = "";
+            document.getElementById('inputEmail').value = "";
+            document.getElementById('inputTelefone').value = "";
+            document.getElementById('inputPerfil').value = "Assessor";
+
+            document.querySelectorAll('.rd-cabo').forEach(rd => rd.checked = false);
+
+            alternarExibicaoCaboEleitoral();
+            modalUsuario.show();
+        }
+
+        function abrirModalEditar(id, nome, email, telefone, perfil) {
+            document.getElementById('modalUsuarioLabel').innerText = "Editar Usuário";
+            document.getElementById('inputId').value = id;
+            document.getElementById('inputNome').value = nome;
+            document.getElementById('inputEmail').value = email;
+            document.getElementById('inputTelefone').value = telefone || "";
+            document.getElementById('inputPerfil').value = perfil;
+
+            alternarExibicaoCaboEleitoral();
+            modalUsuario.show();
+        }
+    </script>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '@TempData["SuccessMessage"]',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            });
+        </script>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: '@TempData["ErrorMessage"]',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            });
+        </script>
+    }
+}

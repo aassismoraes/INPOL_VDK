@@ -1,0 +1,396 @@
+﻿@using System.Text.Json
+@using Domain.Enums
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>@ViewData["Title"] - IN|Pol</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <!-- Estilo Customizado Mobile -->
+    <link rel="stylesheet" href="~/css/mobile-app.css" asp-append-version="true" />
+
+    <!-- Estilos do Loader Global -->
+    <style>
+            #app-loader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(4px);
+                z-index: 9999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+
+            #app-loader.hidden {
+                opacity: 0;
+                visibility: hidden;
+            }
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+
+    <!-- Overlay Loader Global -->
+    <div id="app-loader">
+        <div class="spinner-border text-primary mb-2" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Carregando...</span>
+        </div>
+        <span class="fw-semibold text-secondary fs-6">Carregando...</span>
+    </div>
+
+    <!-- Header Fixo Topo -->
+    <header class="app-header fixed-top d-flex align-items-center justify-content-between px-3">
+        <a class="app-brand text-decoration-none d-flex align-items-center" asp-page="@(User.IsInRole("CaboEleitoral") ? "/Apoiadores/Index" : "/Index")">
+            <i class="bi bi-box-seam-fill me-2"></i> In|Pol
+        </a>
+
+        <!-- Menu Desktop -->
+        <div class="desktop-nav d-none align-items-center gap-3">
+            <!-- Botão Apoiadores liberado para todos (inclusive Cabo Eleitoral) -->
+            <a class="btn btn-sm btn-outline-primary" asp-page="/Apoiadores/Index">Apoiadores</a>
+
+            @if (!User.IsInRole("CaboEleitoral"))
+            {
+                <a class="btn btn-sm btn-outline-primary" asp-page="/Demandas/Index">Demandas</a>
+                <a class="btn btn-sm btn-outline-primary" asp-page="/Mapa/Index">Mapa de Calor</a>
+            }
+            <a class="btn btn-sm btn-outline-primary" asp-page="/Eventos/Index">Eventos</a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            @{
+                var isCaboEleitoral = User.IsInRole("CaboEleitoral");
+                var totalDemandasVencidas = ViewData["DemandasVencidas"] as int? ?? 0;
+                var totalDemandas3Dias = ViewData["DemandasVencendo3Dias"] as int? ?? 0;
+                var totalEventosHoje = ViewData["EventosHoje"] as int? ?? 0;
+                var pendentesAprovacao = ViewData["PendentesAprovacao"] as int? ?? 0;
+
+                // Soma total de notificações
+                var totalAlertas = totalDemandasVencidas + totalDemandas3Dias + totalEventosHoje + pendentesAprovacao;
+            }
+
+            @if (!isCaboEleitoral)
+            {
+                <div class="dropdown">
+                    <button class="btn btn-light rounded-circle p-2 position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Alertas do Gabinete">
+                        <i class="bi bi-bell-fill text-secondary"></i>
+                        @if (totalAlertas > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem;">
+                                @(totalAlertas > 99 ? "99+" : totalAlertas.ToString())
+                                <span class="visually-hidden">Alertas pendentes</span>
+                            </span>
+                        }
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" style="width: 300px; max-width: 90vw;">
+                        <li>
+                            <h6 class="dropdown-header fw-bold text-uppercase fs-7 text-muted border-bottom pb-2 mb-2">
+                                Central de Avisos
+                            </h6>
+                        </li>
+
+                        @if (totalAlertas > 0)
+                        {
+                            @if (pendentesAprovacao > 0)
+                            {
+                                <li>
+                                    <a asp-page="/Apoiadores/Index" asp-route-StatusFiltro="AGUARDANDO APROVAÇÃO" class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-2 text-warning-emphasis">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-lines-fill me-2 fs-5 text-warning"></i>
+                                            <div>
+                                                <strong class="d-block fs-7">Apoiadores Pendentes</strong>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Aguardando aprovação</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-warning text-dark rounded-pill">@pendentesAprovacao</span>
+                                    </a>
+                                </li>
+                            }
+
+                            @if (totalDemandasVencidas > 0)
+                            {
+                                <li>
+                                    <a asp-page="/Demandas/Index" asp-route-status="Vencidas" class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-2 text-danger">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-exclamation-octagon-fill me-2 fs-5"></i>
+                                            <div>
+                                                <strong class="d-block fs-7">Demandas Vencidas</strong>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Atenção imediata</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-danger rounded-pill">@totalDemandasVencidas</span>
+                                    </a>
+                                </li>
+                            }
+
+                            @if (totalDemandas3Dias > 0)
+                            {
+                                <li>
+                                    <a asp-page="/Demandas/Index" asp-route-status="VencendoProximosDias" class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-2 text-warning-emphasis">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-clock-history me-2 fs-5 text-warning"></i>
+                                            <div>
+                                                <strong class="d-block fs-7">Vencem em até 3 dias</strong>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Atenção aos prazos</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-warning text-dark rounded-pill">@totalDemandas3Dias</span>
+                                    </a>
+                                </li>
+                            }
+
+                            @if (totalEventosHoje > 0)
+                            {
+                                <li>
+                                    <a asp-page="/Eventos/Index" asp-route-filtro="Hoje" class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded-2 text-primary">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-calendar-event-fill me-2 fs-5 text-primary"></i>
+                                            <div>
+                                                <strong class="d-block fs-7">Agenda de Hoje</strong>
+                                                <small class="text-muted d-block" style="font-size: 0.75rem;">Compromissos do dia</small>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-primary rounded-pill">@totalEventosHoje</span>
+                                    </a>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="text-center py-3 text-muted">
+                                <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-1"></i>
+                                <small class="fw-medium">Nenhum alerta ou pendência!</small>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (User.IsInRole("Administrador") || User.IsInRole("Assessor"))
+            {
+                <div class="dropdown">
+                    <button class="btn btn-light rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Configurações">
+                        <i class="bi bi-gear-fill text-secondary"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                        <li>
+                            <h6 class="dropdown-header">Configurações</h6>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center" asp-page="/Configuracoes/Tags/Index">
+                                <i class="bi bi-tags-fill me-2 text-primary"></i> Tags de Segmentação
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center" asp-page="/Configuracoes/ResponsaveisEquipe/Index">
+                                <i class="bi bi-person-badge-fill me-2 text-primary"></i> Responsáveis na Equipe
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center" asp-page="/Configuracoes/CabosEleitorais/Index">
+                                <i class="bi bi-person-badge-fill me-2 text-primary"></i> Cabos Eleitorais
+                            </a>
+                        </li>
+
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <li><hr class="dropdown-divider opacity-25"></li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center" asp-page="/Configuracoes/Usuarios/Index">
+                                    <i class="bi bi-person-gear me-2 text-primary"></i> Usuários do Gabinete
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="dropdown">
+                <button class="btn btn-light rounded-circle p-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Perfil">
+                    <i class="bi bi-person-fill text-secondary"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                    <li>
+                        <div class="px-3 py-2">
+                            <span class="d-block fw-bold text-dark">@User.Identity?.Name</span>
+                            <small class="text-muted">
+                                @(User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Usuário")
+                            </small>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider opacity-25"></li>
+                    <li>
+                        <a class="dropdown-item py-2 d-flex align-items-center text-danger fw-semibold" asp-page="/Account/Logout">
+                            <i class="bi bi-box-arrow-right me-2"></i> Sair da Conta
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main role="main" class="container-fluid px-3 pt-3">
+        @if (!isCaboEleitoral && totalDemandasVencidas > 0)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm d-flex align-items-center justify-content-between rounded-3 mb-3 p-3" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-danger flex-shrink-0"></i>
+                    <div>
+                        <strong class="d-block text-danger">Atenção ao Prazo!</strong>
+                        <span class="fs-7 text-dark">Existem <strong>@totalDemandasVencidas</strong> demanda(s) com o prazo de atendimento vencido.</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a asp-page="/Demandas/Index" asp-route-status="Vencidas" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold text-nowrap">
+                        Ver
+                    </a>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+
+        @RenderBody()
+    </main>
+
+    <!-- Bottom Navigation Fixo (Dispositivos Móveis) -->
+    <nav class="bottom-nav fixed-bottom d-flex justify-content-around align-items-center">
+        @if (!isCaboEleitoral)
+        {
+            <a asp-page="/Index" class="nav-link-app col text-center @(ViewContext.RouteData.Values["page"]?.ToString() == "/Index" ? "active" : "")">
+                <i class="bi bi-house-door"></i>
+                <span>Início</span>
+            </a>
+        }
+
+        <!-- Botão Base (Apoiadores) liberado para o Cabo Eleitoral e demais perfis -->
+        <a asp-page="/Apoiadores/Index" class="nav-link-app col text-center @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Apoiadores") == true ? "active" : "")">
+            <i class="bi bi-people"></i>
+            <span>Base</span>
+        </a>
+
+        @if (!isCaboEleitoral)
+        {
+            <div class="col text-center fab-item">
+                <a asp-page="/Mapa/Index" class="nav-link-app fab-button mx-auto @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Mapa") == true ? "active" : "")" title="Mapa de Calor">
+                    <i class="bi bi-fire"></i>
+                </a>
+            </div>
+
+            <a asp-page="/Demandas/Index" class="nav-link-app col text-center @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Demandas") == true ? "active" : "")">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Demandas</span>
+            </a>
+        }
+
+        <a asp-page="/Eventos/Index" class="nav-link-app col text-center @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Eventos") == true ? "active" : "")">
+            <i class="bi bi-calendar-event"></i>
+            <span>Agenda</span>
+        </a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Script do Loader Global -->
+    <script>
+            function showLoader() {
+                const loader = document.getElementById('app-loader');
+                if (loader) loader.classList.remove('hidden');
+            }
+
+            function hideLoader() {
+                const loader = document.getElementById('app-loader');
+                if (loader) loader.classList.add('hidden');
+            }
+
+            window.addEventListener('load', function () {
+                hideLoader();
+            });
+
+            document.addEventListener('submit', function (e) {
+                if (!e.defaultPrevented) {
+                    showLoader();
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest('a');
+                if (link && link.href && !link.target && !link.href.startsWith('javascript:') && !link.getAttribute('data-bs-toggle')) {
+                    const url = new URL(link.href, window.location.origin);
+                    if (url.origin === window.location.origin && url.pathname !== window.location.pathname) {
+                        showLoader();
+                    }
+                }
+            });
+    </script>
+
+    @* SweetAlert Notifications seguras via JsonSerializer *@
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: @Html.Raw(JsonSerializer.Serialize(TempData["SuccessMessage"]?.ToString())),
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                });
+        </script>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'warning',
+                        title: 'Atenção aos campos:',
+                        html: @Html.Raw(JsonSerializer.Serialize(TempData["ErrorMessage"]?.ToString())),
+                        showConfirmButton: false,
+                        timer: 6000,
+                        timerProgressBar: true
+                    });
+                });
+        </script>
+    }
+
+    @if (TempData["SystemErrorMessage"] != null)
+    {
+        <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ops! Ocorreu um problema',
+                        text: @Html.Raw(JsonSerializer.Serialize(TempData["SystemErrorMessage"]?.ToString())),
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#0d6efd'
+                    });
+                });
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,392 @@
+﻿@page "{id:guid}"
+@model WebApp.Pages.Eventos.EditarModel
+@using Domain.Enums
+@{
+    ViewData["Title"] = "Editar Evento";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-7">
+        <div class="card card-mobile shadow-sm mb-4 border-0">
+            <div class="card-header bg-white border-0 pt-3 pb-0 d-flex align-items-center justify-content-between">
+                <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-pencil-square me-2"></i>Editar Evento</h5>
+                <a asp-page="./Index" class="btn-close" aria-label="Fechar"></a>
+            </div>
+
+            <div class="card-body">
+                <!-- Formulário Principal -->
+                <form method="post" id="formEditarEvento">
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="EventoInput.Latitude" id="latInput" />
+                    <input type="hidden" asp-for="EventoInput.Longitude" id="lngInput" />
+
+                    <!-- Container para manter os IDs dos Cabos no Post -->
+                    <div id="containerInputsCabos">
+                        @if (Model.EventoInput.CabosEleitoraisIds != null)
+                        {
+                            @foreach (var caboId in Model.EventoInput.CabosEleitoraisIds)
+                            {
+                                <input type="hidden" name="EventoInput.CabosEleitoraisIds" value="@caboId" id="input_cabo_@caboId" />
+                            }
+                        }
+                    </div>
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger card-mobile" role="alert"></div>
+
+                    <!-- Título do Evento -->
+                    <div class="mb-3">
+                        <label asp-for="EventoInput.Titulo" class="form-label fw-medium"></label>
+                        <input asp-for="EventoInput.Titulo" class="form-control form-control-lg" placeholder="Ex: Caminhada no Bairro da Paz" />
+                        <span asp-validation-for="EventoInput.Titulo" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Status do Evento -->
+                    <div class="mb-3">
+                        <label asp-for="Ativo" class="form-label fw-medium">Status do Evento</label>
+                        <select asp-for="Ativo" class="form-select">
+                            <option value="true">Ativo / Confirmado</option>
+                            <option value="false">Cancelado / Inativo</option>
+                        </select>
+                        <span asp-validation-for="Ativo" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Tipo e Nome do Local -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="EventoInput.Tipo" class="form-label fw-medium"></label>
+                            <select asp-for="EventoInput.Tipo" asp-items="Html.GetEnumSelectList<TipoEvento>()" class="form-select">
+                                <option value="">Selecione...</option>
+                            </select>
+                            <span asp-validation-for="EventoInput.Tipo" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="EventoInput.Local" class="form-label fw-medium">Nome do Local</label>
+                            <input asp-for="EventoInput.Local" class="form-control" placeholder="Ex: Assoc. de Moradores" />
+                            <span asp-validation-for="EventoInput.Local" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Datas de Início e Fim -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="EventoInput.DataHoraInicio" class="form-label fw-medium">Início</label>
+                            <input asp-for="EventoInput.DataHoraInicio"
+                                   class="form-control"
+                                   type="datetime-local"
+                                   step="60"
+                                   value="@Model.EventoInput.DataHoraInicio.ToString("yyyy-MM-ddTHH:mm")" />
+                            <span asp-validation-for="EventoInput.DataHoraInicio" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="EventoInput.DataHoraFim" class="form-label fw-medium">Fim</label>
+                            <input asp-for="EventoInput.DataHoraFim"
+                                   class="form-control"
+                                   type="datetime-local"
+                                   step="60"
+                                   value="@(Model.EventoInput.DataHoraFim.HasValue ? Model.EventoInput.DataHoraFim.Value.ToString("yyyy-MM-ddTHH:mm") : "")" />
+                            <span asp-validation-for="EventoInput.DataHoraFim" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Configuração de Antecedência para Check-in -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-12">
+                            <label asp-for="EventoInput.MinutosAntecedenciaCheckIn" class="form-label fw-medium">
+                                Tolerância para Check-in GPS (Minutos de Antecedência)
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-clock-history"></i></span>
+                                <input asp-for="EventoInput.MinutosAntecedenciaCheckIn"
+                                       type="number"
+                                       min="0"
+                                       max="1440"
+                                       class="form-control"
+                                       placeholder="20" />
+                                <span class="input-group-text bg-light text-muted">minutos antes</span>
+                            </div>
+                            <span asp-validation-for="EventoInput.MinutosAntecedenciaCheckIn" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Bloco de Endereço Detalhado -->
+                    <hr class="my-4 text-muted opacity-25" />
+                    <h6 class="fw-bold text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>ENDEREÇO DO EVENTO</h6>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-12 col-md-5">
+                            <label asp-for="EventoInput.Cep" class="form-label fw-medium">CEP</label>
+                            <div class="input-group">
+                                <input asp-for="EventoInput.Cep" id="txtCep" class="form-control" placeholder="00000-000" maxlength="9" />
+                                <button class="btn btn-outline-secondary" type="button" id="btnBuscarCep">
+                                    <i class="bi bi-search" id="iconBuscarCep"></i>
+                                    <span class="spinner-border spinner-border-sm d-none" id="spinBuscarCep" role="status" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                            <span asp-validation-for="EventoInput.Cep" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-8 col-md-9">
+                            <label asp-for="EventoInput.Logradouro" class="form-label fw-medium">Logradouro / Rua</label>
+                            <input asp-for="EventoInput.Logradouro" id="txtLogradouro" class="form-control" placeholder="Rua, Avenida, Praça..." />
+                            <span asp-validation-for="EventoInput.Logradouro" class="text-danger small"></span>
+                        </div>
+                        <div class="col-4 col-md-3">
+                            <label asp-for="EventoInput.Numero" class="form-label fw-medium">Número</label>
+                            <input asp-for="EventoInput.Numero" class="form-control" placeholder="S/N" />
+                            <span asp-validation-for="EventoInput.Numero" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="EventoInput.Complemento" class="form-label fw-medium">Complemento</label>
+                            <input asp-for="EventoInput.Complemento" class="form-control" placeholder="Apto, Bloco, Quadra..." />
+                            <span asp-validation-for="EventoInput.Complemento" class="text-danger small"></span>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="EventoInput.Bairro" class="form-label fw-medium">Bairro</label>
+                            <input asp-for="EventoInput.Bairro" id="txtBairro" class="form-control" placeholder="Bairro" />
+                            <span asp-validation-for="EventoInput.Bairro" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-8 col-md-9">
+                            <label asp-for="EventoInput.Cidade" class="form-label fw-medium">Cidade</label>
+                            <input asp-for="EventoInput.Cidade" id="txtCidade" class="form-control" placeholder="Cidade" />
+                            <span asp-validation-for="EventoInput.Cidade" class="text-danger small"></span>
+                        </div>
+                        <div class="col-4 col-md-3">
+                            <label asp-for="EventoInput.Uf" class="form-label fw-medium">UF</label>
+                            <input asp-for="EventoInput.Uf" id="txtUf" class="form-control text-uppercase" placeholder="RJ" maxlength="2" />
+                            <span asp-validation-for="EventoInput.Uf" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Bloco Cabos Eleitorais Convidados -->
+                    <hr class="my-4 text-muted opacity-25" />
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="fw-bold text-muted mb-0"><i class="bi bi-people me-1"></i>CABOS ELEITORAIS CONVIDADOS</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#modalBuscarCabos">
+                            <i class="bi bi-person-plus me-1"></i> Gerenciar Cabos
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <div id="listaCabosSelecionados" class="d-flex flex-wrap gap-2">
+                            @foreach (var cabo in Model.CabosEleitoraisSelecionados)
+                            {
+                                <div class="badge bg-light text-dark border p-2 d-flex align-items-center gap-2" id="card_cabo_@cabo.Id">
+                                    <div class="text-start">
+                                        <div class="fw-semibold text-truncate" style="max-width: 180px;">@cabo.Nome</div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                            @(string.IsNullOrWhiteSpace(cabo.AreaInfluencia) ? cabo.Bairro ?? "Geral" : cabo.AreaInfluencia)
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn-close ms-1" style="font-size: 0.65rem;" onclick="removerCabo('@cabo.Id')" aria-label="Remover"></button>
+                                </div>
+                            }
+                            <small class="text-muted fst-italic @(Model.CabosEleitoraisSelecionados.Any() ? "d-none" : "")" id="msgSemCabos">
+                                Nenhum cabo eleitoral convidado até o momento.
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Pauta / Descrição -->
+                    <hr class="my-4 text-muted opacity-25" />
+                    <div class="mb-3">
+                        <label asp-for="EventoInput.Descricao" class="form-label fw-medium">Descrição / Pauta</label>
+                        <textarea asp-for="EventoInput.Descricao" class="form-control" rows="3" placeholder="Observações e pauta da reunião..."></textarea>
+                        <span asp-validation-for="EventoInput.Descricao" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Botão de Ação -->
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold py-3 shadow-sm">
+                            <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Buscar/Gerenciar Cabos Eleitorais -->
+<div class="modal fade" id="modalBuscarCabos" tabindex="-1" aria-labelledby="modalBuscarCabosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold text-primary" id="modalBuscarCabosLabel">
+                    <i class="bi bi-people me-1"></i> Selecionar Cabos Eleitorais
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" id="filtroCabos" class="form-control mb-2" placeholder="🔍 Buscar por nome, bairro ou área..." onkeyup="filtrarCabosEleitorais()" />
+                </div>
+
+                <div class="list-group">
+                    @if (!Model.CabosEleitoraisDisponiveis.Any())
+                    {
+                        <small class="text-muted text-center py-2">Nenhum cabo eleitoral ativo cadastrado.</small>
+                    }
+                    else
+                    {
+                        @foreach (var cabo in Model.CabosEleitoraisDisponiveis)
+                        {
+                            var isChecked = Model.EventoInput.CabosEleitoraisIds != null &&
+                                            Model.EventoInput.CabosEleitoraisIds.Contains(cabo.Id);
+                            <label class="list-group-item d-flex justify-content-between align-items-center cursor-pointer item-cabo">
+                                <div class="d-flex align-items-center gap-2">
+                                    <input class="form-check-input me-1 chk-cabo-modal"
+                                           type="checkbox"
+                                           value="@cabo.Id"
+                                           data-nome="@cabo.Nome"
+                                           data-info="@(string.IsNullOrWhiteSpace(cabo.AreaInfluencia) ? cabo.Bairro ?? "Geral" : cabo.AreaInfluencia)"
+                                           id="chk_modal_@cabo.Id"
+                                           onchange="alternarCaboPeloModal(this)"
+                                    @(isChecked ? "checked" : "") />
+                                    <div>
+                                        <div class="fw-medium label-nome">@cabo.Nome</div>
+                                        <small class="text-muted label-info">
+                                            @(string.IsNullOrWhiteSpace(cabo.AreaInfluencia) ? cabo.Bairro ?? "Geral" : cabo.AreaInfluencia)
+                                        </small>
+                                    </div>
+                                </div>
+                            </label>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-primary rounded-pill px-4" data-bs-dismiss="modal">Concluir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const txtCep = document.getElementById("txtCep");
+            const btnBuscarCep = document.getElementById("btnBuscarCep");
+            const iconBuscarCep = document.getElementById("iconBuscarCep");
+            const spinBuscarCep = document.getElementById("spinBuscarCep");
+
+            async function buscarCep() {
+                const cep = txtCep.value.replace(/\D/g, '');
+                if (cep.length !== 8) return;
+
+                if (iconBuscarCep) iconBuscarCep.classList.add("d-none");
+                if (spinBuscarCep) spinBuscarCep.classList.remove("d-none");
+                if (btnBuscarCep) btnBuscarCep.disabled = true;
+
+                try {
+                    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const data = await response.json();
+
+                    if (!data.erro) {
+                        document.getElementById("txtLogradouro").value = data.logradouro || '';
+                        document.getElementById("txtBairro").value = data.bairro || '';
+                        document.getElementById("txtCidade").value = data.localidade || '';
+                        document.getElementById("txtUf").value = data.uf || '';
+                    }
+                } catch (e) {
+                    console.error("Erro ao buscar CEP:", e);
+                } finally {
+                    if (iconBuscarCep) iconBuscarCep.classList.remove("d-none");
+                    if (spinBuscarCep) spinBuscarCep.classList.add("d-none");
+                    if (btnBuscarCep) btnBuscarCep.disabled = false;
+                }
+            }
+
+            btnBuscarCep?.addEventListener("click", buscarCep);
+            txtCep?.addEventListener("blur", buscarCep);
+        });
+
+        function alternarCaboPeloModal(checkbox) {
+            const id = checkbox.value;
+            const nome = checkbox.getAttribute('data-nome');
+            const info = checkbox.getAttribute('data-info');
+
+            if (checkbox.checked) {
+                adicionarCaboInterface(id, nome, info);
+            } else {
+                removerCaboInterface(id);
+            }
+        }
+
+        function removerCabo(id) {
+            const chkModal = document.getElementById(`chk_modal_${id}`);
+            if (chkModal) chkModal.checked = false;
+
+            removerCaboInterface(id);
+        }
+
+        function adicionarCaboInterface(id, nome, info) {
+            const msgSemCabos = document.getElementById('msgSemCabos');
+            if (msgSemCabos) msgSemCabos.classList.add('d-none');
+
+            const containerInputs = document.getElementById('containerInputsCabos');
+            if (!document.getElementById(`input_cabo_${id}`)) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'EventoInput.CabosEleitoraisIds';
+                hiddenInput.value = id;
+                hiddenInput.id = `input_cabo_${id}`;
+                containerInputs.appendChild(hiddenInput);
+            }
+
+            const lista = document.getElementById('listaCabosSelecionados');
+            if (!document.getElementById(`card_cabo_${id}`)) {
+                const badge = document.createElement('div');
+                badge.className = 'badge bg-light text-dark border p-2 d-flex align-items-center gap-2';
+                badge.id = `card_cabo_${id}`;
+                badge.innerHTML = `
+                    <div class="text-start">
+                        <div class="fw-semibold text-truncate" style="max-width: 180px;">${nome}</div>
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">${info}</small>
+                    </div>
+                    <button type="button" class="btn-close ms-1" style="font-size: 0.65rem;" onclick="removerCabo('${id}')" aria-label="Remover"></button>
+                `;
+                lista.appendChild(badge);
+            }
+        }
+
+        function removerCaboInterface(id) {
+            const input = document.getElementById(`input_cabo_${id}`);
+            if (input) input.remove();
+
+            const card = document.getElementById(`card_cabo_${id}`);
+            if (card) card.remove();
+
+            const containerInputs = document.getElementById('containerInputsCabos');
+            if (containerInputs.querySelectorAll('input[type="hidden"]').length === 0) {
+                const msgSemCabos = document.getElementById('msgSemCabos');
+                if (msgSemCabos) msgSemCabos.classList.remove('d-none');
+            }
+        }
+
+        function filtrarCabosEleitorais() {
+            const termo = document.getElementById('filtroCabos').value.toLowerCase();
+            const itens = document.querySelectorAll('.item-cabo');
+
+            itens.forEach(item => {
+                const nome = item.querySelector('.label-nome')?.innerText.toLowerCase() || '';
+                const info = item.querySelector('.label-info')?.innerText.toLowerCase() || '';
+
+                if (nome.includes(termo) || info.includes(termo)) {
+                    item.classList.remove('d-none');
+                } else {
+                    item.classList.add('d-none');
+                }
+            });
+        }
+    </script>
+}

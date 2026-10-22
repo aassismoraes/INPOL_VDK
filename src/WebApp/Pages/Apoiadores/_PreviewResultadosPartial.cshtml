@@ -1,0 +1,132 @@
+﻿@model WebApp.Pages.Apoiadores.ExportarRelatoriosModel
+
+<div class="card border-primary mb-3 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+            <i class="bi bi-table me-2"></i>Pré-visualização dos Resultados (@Model.TotalRegistrosConsiderados de @Model.TotalRegistrosEncontrados encontrados, limite aplicado: @Model.LimiteEfetivo)
+        </h6>
+        <div class="d-flex gap-2">
+            <!-- BOTÃO DE EXPORTAÇÃO EM CSV -->
+            <button type="button" class="btn btn-light btn-sm fw-bold text-success" onclick="exportarArquivo('ExportarCsv')">
+                <i class="bi bi-filetype-csv me-1"></i> Exportar CSV
+            </button>
+
+            <!-- BOTÃO DE EXPORTAÇÃO EM XLSX -->
+            <button type="button" class="btn btn-success btn-sm fw-bold" onclick="exportarArquivo('ExportarXlsx')">
+                <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel (.xlsx)
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.PreviewResultados.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="text-muted mt-2">Nenhum registro encontrado para os filtros selecionados.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap" style="font-size: 0.875rem;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Nome</th>
+                            <th>CPF</th>
+                            <th>Celular / Zap</th>
+                            <th>Distrito</th>
+                            <th>Bairro</th>
+                            <th>Cidade/UF</th>
+                            <th>Nascimento</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.PreviewResultados)
+                        {
+                            <tr>
+                                <td class="fw-bold">@p.Nome</td>
+                                <td>@(p.Cpf ?? "-")</td>
+                                <td>@(p.Celular ?? "-")</td>
+                                <td>@(p.Distrito ?? "-")</td>
+                                <td>@(p.Bairro ?? "-")</td>
+                                <td>@p.Cidade / @p.Uf</td>
+                                <td>@(p.DataNascimento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td>
+                                    <span class="badge @(p.StatusTexto == "ATIVO" ? "bg-success" : "bg-danger")">
+                                        @p.StatusTexto
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- CONTROLES DE PAGINAÇÃO VIA AJAX -->
+            <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 p-3 border-top bg-light">
+                <div class="d-flex align-items-center gap-2 text-muted small">
+                    <span>Exibir:</span>
+                    <select id="selectTamanhoPagina" class="form-select form-select-sm" onchange="alterarTamanhoPaginaAjax(this.value)">
+                        <option value="10" selected="@(Model.TamanhoPagina == 10)">10</option>
+                        <option value="20" selected="@(Model.TamanhoPagina == 20)">20</option>
+                        <option value="50" selected="@(Model.TamanhoPagina == 50)">50</option>
+                        <option value="100" selected="@(Model.TamanhoPagina == 100)">100</option>
+                    </select>
+                    <span>registros (Exibindo <strong>@((Model.PaginaAtual - 1) * Model.TamanhoPagina + 1)</strong> a <strong>@(Math.Min(Model.PaginaAtual * Model.TamanhoPagina, Model.TotalRegistrosConsiderados))</strong> de <strong>@Model.TotalRegistrosConsiderados</strong>)</span>
+                </div>
+
+                @if (Model.TotalPaginas > 1)
+                {
+                    <nav aria-label="Navegação de página">
+                        <ul class="pagination pagination-sm m-0 justify-content-center">
+
+                            <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link rounded-start-pill px-3" onclick="carregarPaginaAjax(@(Model.PaginaAtual - 1))">
+                                    <i class="bi bi-chevron-left me-1"></i> Anterior
+                                </button>
+                            </li>
+
+                            @if (Model.PaginaAtual > 3)
+                            {
+                                <li class="page-item">
+                                    <button type="button" class="page-link" onclick="carregarPaginaAjax(1)">1</button>
+                                </li>
+                                @if (Model.PaginaAtual > 4)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                            }
+
+                            @for (int i = Math.Max(1, Model.PaginaAtual - 2); i <= Math.Min(Model.TotalPaginas, Model.PaginaAtual + 2); i++)
+                            {
+                                var pNum = i;
+                                <li class="page-item @(pNum == Model.PaginaAtual ? "active fw-bold" : "")">
+                                    <button type="button" class="page-link" onclick="carregarPaginaAjax(@pNum)">@pNum</button>
+                                </li>
+                            }
+
+                            @if (Model.PaginaAtual < Model.TotalPaginas - 2)
+                            {
+                                @if (Model.PaginaAtual < Model.TotalPaginas - 3)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                                <li class="page-item">
+                                    <button type="button" class="page-link" onclick="carregarPaginaAjax(@Model.TotalPaginas)">@Model.TotalPaginas</button>
+                                </li>
+                            }
+
+                            <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                                <button type="button" class="page-link rounded-end-pill px-3" onclick="carregarPaginaAjax(@(Model.PaginaAtual + 1))">
+                                    Próximo <i class="bi bi-chevron-right ms-1"></i>
+                                </button>
+                            </li>
+
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>

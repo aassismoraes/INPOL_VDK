@@ -1,0 +1,243 @@
+﻿@page
+@using Data.Entities
+@model WebApp.Pages.Eventos.IndexModel
+@{
+    ViewData["Title"] = "Eventos e Agenda";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-primary"><i class="bi bi-calendar-event-fill me-2"></i>Eventos e Agenda</h4>
+        <small class="text-muted fw-semibold">
+            Mostrando @Model.ExibindoCount de @Model.TotalEventos.ToString("N0") cadastrados
+        </small>
+    </div>
+    @if (!User.IsInRole(nameof(PerfilAcesso.CaboEleitoral)))
+    {
+        <a asp-page="./Cadastrar" class="btn btn-warning text-dark rounded-pill shadow-sm fw-bold">
+            <i class="bi bi-plus-lg me-1"></i> Novo Evento
+        </a>
+    }
+</div>
+
+<!-- Indicator / Badge de Filtro Ativo do Dashboard / Central -->
+@if (!string.IsNullOrEmpty(Model.Filtro))
+{
+    @if (Model.Filtro.Equals("Hoje", StringComparison.OrdinalIgnoreCase))
+    {
+        <div class="alert alert-success d-flex align-items-center justify-content-between shadow-sm rounded-3 mb-3 py-2 px-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-calendar-check-fill fs-5 me-2"></i>
+                <div>
+                    <strong>Filtrando por:</strong> Compromissos da Agenda de Hoje
+                </div>
+            </div>
+            <a asp-page="./Index" class="btn btn-sm btn-outline-dark rounded-pill fw-semibold">
+                <i class="bi bi-x-lg me-1"></i> Limpar Filtro
+            </a>
+        </div>
+    }
+    else if (Model.Filtro.Equals("Semana", StringComparison.OrdinalIgnoreCase))
+    {
+        <div class="alert alert-primary d-flex align-items-center justify-content-between shadow-sm rounded-3 mb-3 py-2 px-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-calendar-week-fill fs-5 me-2"></i>
+                <div>
+                    <strong>Filtrando por:</strong> Compromissos dos Próximos 7 dias
+                </div>
+            </div>
+            <a asp-page="./Index" class="btn btn-sm btn-outline-dark rounded-pill fw-semibold">
+                <i class="bi bi-x-lg me-1"></i> Limpar Filtro
+            </a>
+        </div>
+    }
+}
+
+<!-- Formulário com Busca e Seletor de Ordenação -->
+<form method="get" class="mb-3">
+    <!-- Preserva o filtro de período ativo durante as buscas/ordenações -->
+    @if (!string.IsNullOrEmpty(Model.Filtro))
+    {
+        <input type="hidden" name="Periodo" value="@Model.Filtro" />
+    }
+
+    <div class="row g-2">
+        <!-- Campo de Busca -->
+        <div class="col-12 col-md-7 col-lg-8">
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" asp-for="TermoBusca" class="form-control border-start-0" placeholder="Buscar por título, local ou descrição..." />
+                @if (!string.IsNullOrEmpty(Model.TermoBusca))
+                {
+                    <a asp-page="./Index" asp-route-Periodo="@Model.Filtro" asp-route-ordem="@Model.Ordem" class="btn btn-outline-secondary d-flex align-items-center">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                }
+                <button type="submit" class="btn btn-primary px-4 fw-bold">Buscar</button>
+            </div>
+        </div>
+
+        <!-- Seletor de Ordenação -->
+        <div class="col-12 col-md-5 col-lg-4">
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-sort-down text-muted"></i></span>
+                <select asp-for="Ordem" class="form-select border-start-0" onchange="this.form.submit()">
+                    <option value="data_asc">Data de Início (Mais Próximos)</option>
+                    <option value="data_desc">Data de Início (Mais Distantes)</option>
+                    <option value="titulo_asc">Título (A-Z)</option>
+                    <option value="criado_desc">Últimos Cadastrados</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Lista de Eventos em Cards -->
+@if (!Model.Eventos.Any())
+{
+    <div class="text-center py-5 bg-light rounded-3">
+        <i class="bi bi-calendar-x text-muted display-4"></i>
+        <p class="text-muted mt-2 mb-0">Nenhum evento encontrado para os critérios selecionados.</p>
+        @if (!string.IsNullOrEmpty(Model.Filtro) || !string.IsNullOrEmpty(Model.TermoBusca))
+        {
+            <a asp-page="./Index" class="btn btn-sm btn-primary rounded-pill mt-3 px-3">Limpar todos os filtros</a>
+        }
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var item in Model.Eventos)
+        {
+            <!-- Montagem Dinâmica do Endereço Completo -->
+            var componentesEndereco = new List<string>();
+            if (!string.IsNullOrWhiteSpace(item.Logradouro))
+            {
+                componentesEndereco.Add(!string.IsNullOrWhiteSpace(item.Numero) ? $"{item.Logradouro}, {item.Numero}" : item.Logradouro);
+            }
+            if (!string.IsNullOrWhiteSpace(item.Bairro))
+            {
+                componentesEndereco.Add(item.Bairro);
+            }
+            if (!string.IsNullOrWhiteSpace(item.Cidade))
+            {
+                componentesEndereco.Add(!string.IsNullOrWhiteSpace(item.Uf) ? $"{item.Cidade} - {item.Uf}" : item.Cidade);
+            }
+            var enderecoFormatado = string.Join(" - ", componentesEndereco);
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card card-mobile shadow-sm h-100 border-0">
+                    <div class="card-body d-flex flex-column">
+                        <!-- Título e Ícone de Detalhes -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <a asp-page="./Detalhes" asp-route-id="@item.Id" class="text-decoration-none">
+                                <h6 class="fw-bold mb-0 text-dark text-primary-hover d-flex align-items-center gap-1">
+                                    @item.Titulo
+                                    <i class="bi bi-eye text-primary ms-1" style="font-size: 0.9rem;" title="Ver Detalhes"></i>
+                                </h6>
+                            </a>
+                        </div>
+
+                        <!-- Data e Hora -->
+                        <div class="mb-2 text-primary small fw-semibold">
+                            <i class="bi bi-clock me-1"></i>
+                            @item.DataHoraInicio.ToString("dd/MM/yyyy HH:mm")
+                            @if (item.DataHoraFim.HasValue)
+                            {
+                                <span> até @item.DataHoraFim.Value.ToString("HH:mm")</span>
+                            }
+                        </div>
+
+                        <!-- Local / Referência -->
+                        @if (!string.IsNullOrEmpty(item.Local))
+                        {
+                            <small class="text-muted d-block mb-1 text-truncate" title="@item.Local">
+                                <i class="bi bi-geo-alt me-1"></i><strong>@item.Local</strong>
+                            </small>
+                        }
+
+                        <!-- Endereço Detalhado -->
+                        @if (!string.IsNullOrEmpty(enderecoFormatado))
+                        {
+                            <small class="text-secondary d-block mb-2 text-truncate" style="font-size: 0.8rem;" title="@enderecoFormatado">
+                                <i class="bi bi-house-door me-1"></i>@enderecoFormatado
+                            </small>
+                        }
+
+                        <!-- Descrição -->
+                        @if (!string.IsNullOrEmpty(item.Descricao))
+                        {
+                            <p class="text-muted small mb-3 text-truncate-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                @item.Descricao
+                            </p>
+                        }
+
+                        <hr class="my-2 opacity-25 mt-auto" />
+
+                        <!-- Localize este trecho no final do card em Index.cshtml -->
+                        <div class="d-flex justify-content-end align-items-center gap-1 pt-1">
+                            @if (!User.IsInRole(nameof(PerfilAcesso.CaboEleitoral)))
+                            {
+                                <a asp-page="./Editar" asp-route-id="@item.Id" class="btn btn-sm btn-light text-primary rounded-circle p-2" title="Editar Evento">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Paginação -->
+    @if (Model.TotalPaginas > 1)
+    {
+        <nav class="mt-4 mb-5 pb-4 d-flex justify-content-center">
+            <ul class="pagination pagination-md shadow-sm">
+                <!-- Botão Anterior -->
+                <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="./Index"
+                       asp-route-p="@(Model.PaginaAtual - 1)"
+                       asp-route-TermoBusca="@Model.TermoBusca"
+                       asp-route-Periodo="@Model.Filtro"
+                       asp-route-Ordem="@Model.Ordem">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Páginas -->
+                @for (int i = 1; i <= Model.TotalPaginas; i++)
+                {
+                    if (i == 1 || i == Model.TotalPaginas || (i >= Model.PaginaAtual - 2 && i <= Model.PaginaAtual + 2))
+                    {
+                        <li class="page-item @(i == Model.PaginaAtual ? "active" : "")">
+                            <a class="page-link"
+                               asp-page="./Index"
+                               asp-route-p="@i"
+                               asp-route-TermoBusca="@Model.TermoBusca"
+                               asp-route-Periodo="@Model.Filtro"
+                               asp-route-Ordem="@Model.Ordem">@i</a>
+                        </li>
+                    }
+                    else if (i == Model.PaginaAtual - 3 || i == Model.PaginaAtual + 3)
+                    {
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    }
+                }
+
+                <!-- Botão Próximo -->
+                <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="./Index"
+                       asp-route-p="@(Model.PaginaAtual + 1)"
+                       asp-route-TermoBusca="@Model.TermoBusca"
+                       asp-route-Periodo="@Model.Filtro"
+                       asp-route-Ordem="@Model.Ordem">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

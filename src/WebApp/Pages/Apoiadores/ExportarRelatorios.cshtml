@@ -1,0 +1,388 @@
+﻿@page
+@model WebApp.Pages.Apoiadores.ExportarRelatoriosModel
+@{
+    ViewData["Title"] = "Montar Relatório";
+}
+
+<div class="container-fluid mt-4 mb-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Montar Relatório de Pessoas</h5>
+            <a asp-page="Index" class="btn btn-outline-light btn-sm">Voltar</a>
+        </div>
+        <div class="card-body">
+            <form id="formRelatorio" onsubmit="event.preventDefault(); carregarPaginaAjax(1);">
+                <input type="hidden" name="PaginaAtual" id="inputPaginaAtual" value="1" />
+                <input type="hidden" name="TamanhoPagina" id="inputTamanhoPagina" value="10" />
+
+                <!-- MÓDULO 1: FILTROS CADASTRAIS E LOCALIZAÇÃO (COLAPSÁVEL) -->
+                <div class="border rounded mb-3 shadow-sm">
+                    <div class="bg-light p-3 d-flex justify-content-between align-items-center cursor-pointer"
+                         data-bs-toggle="collapse" data-bs-target="#colapseFiltrosCadastrais" style="cursor: pointer;">
+                        <h6 class="fw-bold text-primary mb-0">
+                            <i class="bi bi-geo-alt-fill me-2"></i>Filtros de Localização, Tags e Padrinhos
+                        </h6>
+                        <i class="bi bi-chevron-down text-primary"></i>
+                    </div>
+
+                    <div class="collapse show p-3 border-top" id="colapseFiltrosCadastrais">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-medium">Selecione os Distritos/Localidades</label>
+                                <select asp-for="Filtro.Distrito" asp-items="Model.DistritosList" class="form-select">
+                                    <option value="">Todos os Distritos / Localidades</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Selecione os Gêneros</label>
+                                <select asp-for="Filtro.Genero" asp-items="Model.GenerosList" class="form-select">
+                                    <option value="">Todos os Gêneros</option>
+                                </select>
+                            </div>
+
+                            <!-- TAGS COM BUSCA POR MODAL -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium d-flex justify-content-between align-items-center">
+                                    <span>Selecione as Tags</span>
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalBuscarTag">
+                                        <i class="bi bi-search me-1"></i>Procurar Tag...
+                                    </button>
+                                </label>
+                                <div class="input-group">
+                                    <select asp-for="Filtro.Tag" asp-items="Model.TagsList" class="form-select" id="selectTag">
+                                        <option value="">Todas as Tags</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalBuscarTag" title="Procurar Tag">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- PADRINHOS COM BUSCA POR MODAL -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium d-flex justify-content-between align-items-center">
+                                    <span>Selecione os Padrinhos</span>
+                                    <button type="button" class="btn btn-link p-0 text-decoration-none btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#modalBuscarPadrinho">
+                                        <i class="bi bi-search me-1"></i>Procurar Padrinho...
+                                    </button>
+                                </label>
+                                <div class="input-group">
+                                    <select asp-for="Filtro.PadrinhoId" asp-items="Model.PadrinhosList" class="form-select" id="selectPadrinho">
+                                        <option value="">Todos os Padrinhos</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalBuscarPadrinho" title="Procurar Padrinho">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Máximo de resultados</label>
+                                <input type="number" asp-for="Filtro.MaximoResultados" class="form-control" placeholder="Padrão: 300 (Máximo: 1000)" max="1000" />
+                                <small class="text-muted">Limite máximo de 1000 registros. Quando não informado, o padrão é 300.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MÓDULO 2: DATAS E REGRAS DE INTERAÇÕES (COLAPSÁVEL) -->
+                <div class="border rounded mb-4 shadow-sm">
+                    <div class="bg-light p-3 d-flex justify-content-between align-items-center cursor-pointer"
+                         data-bs-toggle="collapse" data-bs-target="#colapseFiltrosDatas" style="cursor: pointer;">
+                        <h6 class="fw-bold text-primary mb-0">
+                            <i class="bi bi-calendar-event me-2"></i>Regras de Nascimento e Interações
+                        </h6>
+                        <i class="bi bi-chevron-down text-primary"></i>
+                    </div>
+
+                    <div class="collapse show p-3 border-top" id="colapseFiltrosDatas">
+                        <!-- Data de Nascimento -->
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Data Nascimento (de)</label>
+                                <input type="date" asp-for="Filtro.DataNascimentoDe" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Data Nascimento (até)</label>
+                                <input type="date" asp-for="Filtro.DataNascimentoAte" class="form-control" />
+                            </div>
+                            <div class="col-md-4 pt-4">
+                                <div class="form-check">
+                                    <input type="checkbox" asp-for="Filtro.DataNascimentoNula" class="form-check-input" id="chkDataNula" value="true" />
+                                    <label class="form-check-label fw-medium" for="chkDataNula">Data de nascimento nula</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Contatos Nascidos em -->
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-3 pt-3">
+                                <div class="form-check">
+                                    <input type="checkbox" asp-for="Filtro.FiltrarContatosNascidosEm" class="form-check-input" id="chkNascidosEm" value="true" />
+                                    <label class="form-check-label fw-bold" for="chkNascidosEm">Contatos nascidos em</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Dia</label>
+                                <input type="number" asp-for="Filtro.NascidoDia" class="form-control" min="1" max="31" placeholder="DD" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Mês</label>
+                                <input type="number" asp-for="Filtro.NascidoMes" class="form-control" min="1" max="12" placeholder="MM" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Ano</label>
+                                <input type="number" asp-for="Filtro.NascidoAno" class="form-control" min="1900" max="2100" placeholder="AAAA" />
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Contatos sem WhatsApp -->
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-4 pt-3">
+                                <div class="form-check">
+                                    <input type="checkbox" asp-for="Filtro.FiltrarContatosSemWhatsApp" class="form-check-input" id="chkSemWhats" value="true" />
+                                    <label class="form-check-label fw-bold" for="chkSemWhats">Contatos sem WhatsApp</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Dia</label>
+                                <input type="number" asp-for="Filtro.SemWhatsAppDia" class="form-control" min="1" max="31" placeholder="DD" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Mês</label>
+                                <input type="number" asp-for="Filtro.SemWhatsAppMes" class="form-control" min="1" max="12" placeholder="MM" />
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Contatos sem Interação -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input type="checkbox" asp-for="Filtro.ContatosSemInteracao" class="form-check-input" id="chkSemInteracao" value="true" />
+                                    <label class="form-check-label fw-bold" for="chkSemInteracao">Contatos sem interação</label>
+                                    <small class="d-block text-muted">Quando o contato não tiver nenhuma interação registrada no sistema.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <!-- Contatos com Interação -->
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4 pt-3">
+                                <div class="form-check">
+                                    <input type="checkbox" asp-for="Filtro.ContatosComInteracao" class="form-check-input" id="chkComInteracao" value="true" />
+                                    <label class="form-check-label fw-bold" for="chkComInteracao">Contatos com interação</label>
+                                    <small class="d-block text-muted">Quando o contato possuir alguma interação registrada no sistema.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Data Inicial</label>
+                                <input type="date" asp-for="Filtro.InteracaoDataInicial" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-medium">Data Final</label>
+                                <input type="date" asp-for="Filtro.InteracaoDataFinal" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTÕES DE BUSCA -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <a asp-page="ExportarRelatorios" class="btn btn-secondary rounded-pill px-4">Limpar Filtros</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="bi bi-search me-1"></i> Visualizar Resultados
+                    </button>
+                </div>
+            </form>
+
+            <!-- CONTAINER ONDE O CONTEÚDO AJAX SERÁ INJETADO -->
+            <div id="containerPreviewResultados">
+                <!-- A partial view será carregada aqui via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAIS DE BUSCA RÁPIDA DE TAGS E PADRINHOS                                -->
+<!-- ========================================================================= -->
+<!-- MODAL BUSCAR TAG -->
+<div class="modal fade" id="modalBuscarTag" tabindex="-1" aria-labelledby="modalBuscarTagLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalBuscarTagLabel">
+                    <i class="bi bi-tag-fill me-2"></i>Pesquisar e Selecionar Tag
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="inputFiltroTagModal" class="form-control" placeholder="Digite para filtrar as tags em tempo real..." onkeyup="filtrarListaModal('inputFiltroTagModal', 'listaTagsModal')" autofocus />
+                </div>
+                <div class="list-group" id="listaTagsModal">
+                    <button type="button" class="list-group-item list-group-item-action fw-bold text-primary" onclick="selecionarOpcaoTag('')">
+                        <i class="bi bi-x-circle me-2"></i>Todas as Tags (Limpar Filtro)
+                    </button>
+                    @foreach (var item in Model.TagsList)
+                    {
+                        var valTag = item.Value ?? item.Text;
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="selecionarOpcaoTag('@valTag')">
+                            <span><i class="bi bi-tag me-2 text-muted"></i>@item.Text</span>
+                            <i class="bi bi-chevron-right text-muted small"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL BUSCAR PADRINHO -->
+<div class="modal fade" id="modalBuscarPadrinho" tabindex="-1" aria-labelledby="modalBuscarPadrinhoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalBuscarPadrinhoLabel">
+                    <i class="bi bi-person-badge-fill me-2"></i>Pesquisar e Selecionar Padrinho
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="inputFiltroPadrinhoModal" class="form-control" placeholder="Digite para filtrar os padrinhos em tempo real..." onkeyup="filtrarListaModal('inputFiltroPadrinhoModal', 'listaPadrinhosModal')" autofocus />
+                </div>
+                <div class="list-group" id="listaPadrinhosModal">
+                    <button type="button" class="list-group-item list-group-item-action fw-bold text-primary" onclick="selecionarOpcaoPadrinho('')">
+                        <i class="bi bi-x-circle me-2"></i>Todos os Padrinhos (Limpar Filtro)
+                    </button>
+                    @foreach (var item in Model.PadrinhosList)
+                    {
+                        var valPad = item.Value ?? item.Text;
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="selecionarOpcaoPadrinho('@valPad')">
+                            <span><i class="bi bi-person me-2 text-muted"></i>@item.Text</span>
+                            <i class="bi bi-chevron-right text-muted small"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function carregarPaginaAjax(pagina) {
+            document.getElementById("inputPaginaAtual").value = pagina;
+
+            var form = document.getElementById("formRelatorio");
+            var formData = new FormData(form);
+            var queryParams = new URLSearchParams(formData).toString();
+
+            var container = document.getElementById("containerPreviewResultados");
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="text-muted mt-2">Carregando dados...</p>
+                </div>`;
+
+            fetch('?handler=PreviewPartial&' + queryParams, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar dados do servidor.');
+                }
+                return response.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                container.innerHTML = `
+                    <div class="alert alert-danger text-center my-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> ${error.message}
+                    </div>`;
+            });
+        }
+
+        function alterarTamanhoPaginaAjax(tamanho) {
+            document.getElementById("inputTamanhoPagina").value = tamanho;
+            carregarPaginaAjax(1);
+        }
+
+        function exportarArquivo(handlerName) {
+            var form = document.getElementById("formRelatorio");
+            var formData = new FormData(form);
+            var queryParams = new URLSearchParams(formData).toString();
+
+            window.location.href = `?handler=${handlerName}&${queryParams}`;
+        }
+
+        function filtrarListaModal(inputId, listaId) {
+            var input = document.getElementById(inputId);
+            var filter = input.value.toUpperCase();
+            var container = document.getElementById(listaId);
+            var buttons = container.getElementsByTagName("button");
+
+            for (var i = 0; i < buttons.length; i++) {
+                var txtValue = buttons[i].textContent || buttons[i].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    buttons[i].style.display = "";
+                } else {
+                    buttons[i].style.display = "none";
+                }
+            }
+        }
+
+        function selecionarOpcaoTag(valor) {
+            var select = document.getElementById("selectTag");
+            select.value = valor;
+            select.dispatchEvent(new Event('change'));
+
+            var modalEl = document.getElementById('modalBuscarTag');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+        }
+
+        function selecionarOpcaoPadrinho(valor) {
+            var select = document.getElementById("selectPadrinho");
+            select.value = valor;
+            select.dispatchEvent(new Event('change'));
+
+            var modalEl = document.getElementById('modalBuscarPadrinho');
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+        }
+    </script>
+}

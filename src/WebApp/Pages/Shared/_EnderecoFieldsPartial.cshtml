@@ -1,0 +1,86 @@
+﻿@model Application.Apoiadores.InputModels.EnderecoInputModel
+
+<!-- Auto-complete principal -->
+<div class="mb-3 position-relative">
+    <label class="form-label small fw-bold text-secondary">
+        <i class="bi bi-search me-1"></i> Digite para buscar o endereço (Auto-complete)
+    </label>
+    <div class="input-group">
+        <span class="input-group-text bg-white"><i class="bi bi-geo-alt text-danger"></i></span>
+        <input type="text" id="enderecoAutocomplete" class="form-control" placeholder="Ex: Av. Simão da Mota, Magé..." autocomplete="off" onkeyup="buscarSugestoesEndereco(this.value)" />
+    </div>
+    <ul id="listaSugestoes" class="dropdown-menu w-100 shadow-lg mt-1" style="display: none; max-height: 250px; overflow-y: auto; z-index: 1050;"></ul>
+</div>
+
+<!-- Logradouro e CEP com Botões de Busca -->
+<div class="row g-2 mb-2">
+    <!-- Logradouro com botão de busca ao lado -->
+    <div class="col-12 col-md-8">
+        <label asp-for="Logradouro" class="form-label small fw-medium">Rua / Logradouro</label>
+        <div class="input-group input-group-sm">
+            <input asp-for="Logradouro" id="logradouroInput" class="form-control" placeholder="Rua / Avenida" />
+            <button type="button" class="btn btn-outline-secondary" onclick="buscarPorLogradouro()" title="Buscar endereço por Logradouro">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+    </div>
+
+    <!-- CEP com botão de busca ao lado -->
+    <div class="col-12 col-md-4">
+        <label asp-for="Cep" class="form-label small fw-medium">CEP</label>
+        <div class="input-group input-group-sm">
+            <input asp-for="Cep" id="cepInput" class="form-control" placeholder="00000-000" />
+            <button type="button" class="btn btn-outline-primary" onclick="buscarPorCep()" title="Buscar dados pelo CEP">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Número e Complemento -->
+<div class="row g-2 mb-2">
+    <div class="col-4">
+        <label asp-for="Numero" class="form-label small fw-medium">Número</label>
+        <input asp-for="Numero" id="numeroInput" class="form-control form-control-sm" placeholder="123" />
+    </div>
+    <div class="col-8">
+        <label asp-for="Complemento" class="form-label small fw-medium">Complemento</label>
+        <input asp-for="Complemento" id="complementoInput" class="form-control form-control-sm" placeholder="Apt, Bloco, etc." />
+    </div>
+</div>
+
+<!-- Bairro, Cidade e UF -->
+<div class="row g-2 mb-3">
+    <div class="col-5">
+        <label asp-for="Bairro" class="form-label small fw-medium">Bairro</label>
+        <input asp-for="Bairro" id="bairroInput" class="form-control form-control-sm" placeholder="Bairro" />
+    </div>
+    <div class="col-5">
+        <label asp-for="Cidade" class="form-label small fw-medium">Cidade</label>
+        <input asp-for="Cidade" id="cidadeInput" class="form-control form-control-sm" placeholder="Cidade" value="Magé" />
+    </div>
+    <div class="col-2">
+        <label asp-for="Uf" class="form-label small fw-medium">UF</label>
+        <input asp-for="Uf" id="ufInput" class="form-control form-control-sm" placeholder="RJ" value="RJ" maxlength="2" />
+    </div>
+</div>
+
+<!-- Coordenadas GPS escondidas -->
+<input type="hidden" id="latInput" />
+<input type="hidden" id="lngInput" />
+
+<!-- Status de Localização e Ações GPS -->
+<div class="p-3 bg-light rounded-3 mb-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 border">
+    <div>
+        <div class="fw-bold small text-dark"><i class="bi bi-crosshair text-primary me-1"></i> Localização GPS</div>
+        <small id="geoStatus" class="text-muted" style="font-size: 0.75rem;">Digite o CEP ou Logradouro e clique em buscar.</small>
+    </div>
+    <div class="d-flex flex-wrap gap-1">
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2" onclick="capturarGeolocalizacao()" title="Usar GPS do dispositivo">
+            <i class="bi bi-geo-alt me-1"></i> GPS
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-2" onclick="abrirNoMapa()" title="Verificar no Google Maps">
+            <i class="bi bi-map me-1"></i> Ver no Mapa
+        </button>
+    </div>
+</div>

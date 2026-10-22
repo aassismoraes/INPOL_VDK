@@ -1,0 +1,171 @@
+﻿@page
+@using Data.Entities
+@model WebApp.Pages.Apoiadores.IndexModel
+@{
+    ViewData["Title"] = "Apoiadores";
+}
+
+<!-- Cabeçalho da Página no padrão de Eventos e Agenda -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-primary"><i class="bi bi-people-fill me-2"></i>Apoiadores</h4>
+        <small class="text-muted fw-semibold">
+            Mostrando <span id="lblExibindoCount">@Model.Apoiadores.Count</span> de <span id="lblTotalRegistros">@Model.TotalRegistros.ToString("N0")</span> cadastrados
+        </small>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-page="ExportarRelatorios" class="btn btn-outline-primary rounded-pill shadow-sm fw-bold">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Relatórios
+        </a>
+        <a asp-page="Cadastrar" class="btn btn-warning text-dark rounded-pill shadow-sm fw-bold">
+            <i class="bi bi-plus-lg me-1"></i> Novo Apoiador
+        </a>
+    </div>
+</div>
+
+<!-- Formulário com Busca e Filtros -->
+<form id="formFiltrosApoiadores" onsubmit="event.preventDefault(); carregarPaginaAjax(1);" class="mb-3">
+    <input type="hidden" name="PaginaAtual" id="inputPaginaAtual" value="@Model.PaginaAtual" />
+    <input type="hidden" name="TamanhoPagina" id="inputTamanhoPagina" value="@Model.TamanhoPagina" />
+
+    <div class="row g-2">
+        <!-- Campo Principal de Busca -->
+        <div class="col-12 col-md-5 col-lg-5">
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" asp-for="TermoBusca" id="inputTermoBusca" class="form-control border-start-0" placeholder="Buscar por Nome, CPF, Celular, Bairro..." />
+                <button type="button" id="btnLimparBusca" class="btn btn-outline-secondary d-none align-items-center" onclick="limparTermoBusca()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <button type="submit" class="btn btn-primary px-3 fw-bold">Buscar</button>
+            </div>
+        </div>
+
+        <!-- Botão Toggle de Filtros Avançados para Mobile -->
+        <div class="col-12 d-md-none">
+            <button class="btn btn-outline-primary w-100 d-flex justify-content-between align-items-center shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosMobileCollapse" aria-expanded="false">
+                <span><i class="bi bi-funnel me-1"></i> Filtros Avançados</span>
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+
+        <!-- Conteúdo dos Filtros (Colapsável no Mobile / Grid normal no Desktop) -->
+        <div class="col-12 col-md-7 col-lg-7 collapse d-md-block" id="filtrosMobileCollapse">
+            <div class="row g-2">
+                <!-- Seletor de Status -->
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-lg shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-funnel text-muted"></i></span>
+                        <select asp-for="StatusFiltro" id="selectStatusFiltro" class="form-select border-start-0" onchange="carregarPaginaAjax(1)">
+                            <option value="">Todos os Status</option>
+                            <option value="ATIVO">Ativos</option>
+                            <option value="INATIVO">Inativos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Seletor de Padrinho -->
+                <div class="col-12 col-md-6">
+                    <div class="input-group input-group-lg shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-badge text-muted"></i></span>
+                        <select asp-for="PadrinhoIdFiltro" id="selectPadrinhoFiltro" asp-items="Model.CabosEleitorais" class="form-select border-start-0" onchange="carregarPaginaAjax(1)">
+                            <option value="">Todos os Padrinhos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Container para a Tabela com transição de opacidade suave -->
+<div id="containerTabelaApoiadores" style="transition: opacity 0.2s ease-in-out;">
+    <partial name="_ApoiadoresTabelaPartial" model="Model" />
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            verificarBotaoLimparBusca();
+
+            document.getElementById("inputTermoBusca").addEventListener("input", function () {
+                verificarBotaoLimparBusca();
+            });
+        });
+
+        function verificarBotaoLimparBusca() {
+            var val = document.getElementById("inputTermoBusca").value;
+            var btn = document.getElementById("btnLimparBusca");
+            if (val && val.trim().length > 0) {
+                btn.classList.remove("d-none");
+                btn.classList.add("d-flex");
+            } else {
+                btn.classList.remove("d-flex");
+                btn.classList.add("d-none");
+            }
+        }
+
+        function limparTermoBusca() {
+            document.getElementById("inputTermoBusca").value = "";
+            verificarBotaoLimparBusca();
+            carregarPaginaAjax(1);
+        }
+
+        function limparFiltrosAjax() {
+            document.getElementById("inputTermoBusca").value = "";
+            document.getElementById("selectStatusFiltro").value = "";
+            document.getElementById("selectPadrinhoFiltro").value = "";
+            verificarBotaoLimparBusca();
+            carregarPaginaAjax(1);
+        }
+
+        function carregarPaginaAjax(pagina) {
+            document.getElementById("inputPaginaAtual").value = pagina;
+
+            var form = document.getElementById("formFiltrosApoiadores");
+            var formData = new FormData(form);
+            var queryParams = new URLSearchParams(formData).toString();
+
+            var container = document.getElementById("containerTabelaApoiadores");
+
+            // Suavidade na transição: reduz opacidade enquanto busca
+            container.style.opacity = "0.4";
+
+            fetch('?handler=ApoiadoresPartial&' + queryParams, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Erro ao carregar dados do servidor.');
+                return response.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                container.style.opacity = "1";
+
+                // Atualiza contadores do cabeçalho
+                var countElement = container.querySelector('#selectTamanhoPagina');
+                if (countElement) {
+                    var totalText = container.querySelector('.text-muted strong:last-child');
+                    if (totalText) {
+                        document.getElementById("lblTotalRegistros").innerText = Number(totalText.innerText).toLocaleString('pt-BR');
+                    }
+                }
+            })
+            .catch(error => {
+                container.style.opacity = "1";
+                container.innerHTML = `
+                    <div class="alert alert-danger text-center my-3 shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i> ${error.message}
+                    </div>`;
+            });
+        }
+
+        function alterarTamanhoPaginaAjax(tamanho) {
+            document.getElementById("inputTamanhoPagina").value = tamanho;
+            carregarPaginaAjax(1);
+        }
+    </script>
+}

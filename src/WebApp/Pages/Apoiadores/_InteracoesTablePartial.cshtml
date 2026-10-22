@@ -1,0 +1,109 @@
+﻿@model WebApp.Pages.Apoiadores.DetalhesModel
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Tipo / Categoria</th>
+                <th>Data / Hora</th>
+                <th>Status Envio</th>
+                <th>Retorno</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var interacao in Model.Interacoes)
+            {
+                var statusUpper = interacao.StatusInteracao?.ToUpper() ?? "";
+                var situacaoUpper = interacao.Situacao?.ToUpper() ?? "";
+                var tipoInteracaoTexto = string.IsNullOrWhiteSpace(interacao.TipoInteracao) ? "GERAL" : interacao.TipoInteracao;
+                var tipoMensagemTexto = string.IsNullOrWhiteSpace(interacao.TipoMensagem) ? "SISTEMA" : interacao.TipoMensagem;
+                var dataHoraTexto = interacao.DataHora?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
+                var alteradoEmTexto = interacao.AlteradoEm?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
+
+                <tr class="item-interacao cursor-pointer" style="cursor: pointer;"
+                    data-id="@interacao.Id"
+                    data-pessoa-id="@interacao.PessoaId"
+                    data-tipo-interacao="@tipoInteracaoTexto"
+                    data-tipo-mensagem="@tipoMensagemTexto"
+                    data-data-hora="@dataHoraTexto"
+                    data-alterado-em="@alteradoEmTexto"
+                    data-status-envio="@(interacao.StatusInteracao ?? "-")"
+                    data-retorno="@(interacao.Situacao ?? "-")"
+                    data-remetente="@(interacao.Remetente ?? "Sistema")"
+                    data-mensagem="@interacao.Mensagem">
+                    <td>
+                        <span class="badge bg-light text-dark border fw-bold">
+                            @tipoInteracaoTexto
+                        </span>
+                        <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">
+                            Origem: @tipoMensagemTexto
+                        </small>
+                    </td>
+                    <td>
+                        <small class="fw-bold d-block text-dark">
+                            @interacao.DataHora?.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </td>
+                    <td>
+                        @if (statusUpper.Contains("ENVIADO"))
+                        {
+                            <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i>Enviado</span>
+                        }
+                        else if (statusUpper.Contains("ENFILEIRADO"))
+                        {
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Enfileirado</span>
+                        }
+                        else if (statusUpper.Contains("REJEITADO"))
+                        {
+                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Sem WhatsApp</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">@(interacao.StatusInteracao ?? "-")</span>
+                        }
+                    </td>
+                    <td>
+                        @if (situacaoUpper.Contains("POSITIVA"))
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success">
+                                <i class="bi bi-hand-thumbs-up-fill me-1"></i>Resposta Positiva
+                            </span>
+                        }
+                        else if (situacaoUpper.Contains("SEM_RESPOSTA"))
+                        {
+                            <span class="badge bg-light text-muted border">Sem Resposta</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info-subtle text-info border border-info">
+                                @(interacao.Situacao ?? "-")
+                            </span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.TotalPaginas > 1)
+{
+    <div class="card-footer bg-white d-flex justify-content-center py-2">
+        <nav aria-label="Navegação das interações">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                    <button type="button" class="page-link btn-paginacao-ajax" data-pagina="@(Model.PaginaAtual - 1)">Anterior</button>
+                </li>
+                @for (int i = 1; i <= Model.TotalPaginas; i++)
+                {
+                    <li class="page-item @(i == Model.PaginaAtual ? "active" : "")">
+                        <button type="button" class="page-link btn-paginacao-ajax" data-pagina="@i">@i</button>
+                    </li>
+                }
+                <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                    <button type="button" class="page-link btn-paginacao-ajax" data-pagina="@(Model.PaginaAtual + 1)">Próxima</button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+}

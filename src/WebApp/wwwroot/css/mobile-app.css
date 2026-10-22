@@ -1,0 +1,177 @@
+﻿/* ==========================================================================
+   Configurações Globais para Experiência App Mobile
+   ========================================================================== */
+:root {
+    --primary-color: #0d6efd;
+    --primary-dark: #0a58ca;
+    --bg-light: #f8f9fa;
+    --bottom-nav-height: 65px;
+    --header-height: 70px;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-top: var(--header-height);
+    padding-bottom: calc(var(--bottom-nav-height) + 20px + env(safe-area-inset-bottom, 0px));
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ==========================================================================
+   Header Fixo (Topo)
+   ========================================================================== */
+.app-header {
+    height: var(--header-height);
+    background-color: #ffffff;
+    border-bottom: 1px solid #e9ecef;
+    z-index: 1030;
+}
+
+.app-brand {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--primary-color);
+}
+
+/* ==========================================================================
+   Bottom Navigation (Barra Inferior do App)
+   ========================================================================== */
+.bottom-nav {
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background-color: #ffffff;
+    border-top: 1px solid #e9ecef;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    z-index: 1030;
+}
+
+.nav-link-app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 6px 0;
+    transition: color 0.15s ease-in-out;
+}
+
+    .nav-link-app i {
+        font-size: 1.35rem;
+        margin-bottom: 2px;
+    }
+
+    .nav-link-app.active,
+    .nav-link-app:hover {
+        color: var(--primary-color);
+    }
+
+/* Estilo para Botão de Ação Rápida no Centro (FAB) */
+.fab-item {
+    position: relative;
+    top: -12px;
+}
+
+.fab-button {
+    width: 52px;
+    height: 52px;
+    background-color: var(--primary-color);
+    color: #ffffff !important;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.35);
+    border: 3px solid #ffffff;
+}
+
+    .fab-button i {
+        font-size: 1.5rem;
+        margin-bottom: 0;
+    }
+
+/* ==========================================================================
+   Cards e Componentes Mobile
+   ========================================================================== */
+.card-mobile {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   Rolagem por Toque & Arraste (Touch Drag Scroll)
+   ========================================================================== */
+.table-responsive {
+    -webkit-overflow-scrolling: touch; /* Suporte nativo para iOS */
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    touch-action: pan-x pan-y; /* Permite gestos de rolagem X e Y */
+    user-select: none; /* Evita seleção acidental de texto ao arrastar */
+}
+
+    /* Estilização da Barra de Rolagem Horizontal das Tabelas */
+    .table-responsive::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background-color: #ced4da;
+        border-radius: 4px;
+    }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background-color: #adb5bd;
+        }
+
+/* ==========================================================================
+   Estilização Customizada da Paginação
+   ========================================================================== */
+.pagination .page-link {
+    color: #495057;
+    border: 1px solid #e9ecef;
+    padding: 0.375rem 0.75rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.25);
+}
+
+.pagination .page-link:hover:not(.active) {
+    background-color: #f8f9fa;
+    color: var(--primary-color);
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: #f8f9fa;
+    color: #adb5bd;
+    border-color: #e9ecef;
+}
+
+/* ==========================================================================
+   Ajustes em telas maiores (Desktop/Tablet)
+   ========================================================================== */
+@media (min-width: 992px) {
+    body {
+        padding-bottom: 20px;
+    }
+
+    .bottom-nav {
+        display: none !important; /* Oculta bottom nav em telas grandes */
+    }
+
+    .desktop-nav {
+        display: flex !important;
+    }
+}

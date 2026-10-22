@@ -1,0 +1,173 @@
+﻿@page
+@model WebApp.Pages.Configuracoes.Tags.IndexModel
+@{
+    ViewData["Title"] = "Gerenciamento de Tags";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-primary"><i class="bi bi-tags-fill me-2"></i>Tags de Segmentação</h4>
+        <small class="text-muted">Gerencie os marcadores do CRM de apoiadores</small>
+    </div>
+    <button type="button" class="btn btn-primary rounded-pill shadow-sm fw-bold" onclick="abrirModalNovaTag()">
+        <i class="bi bi-plus-lg me-1"></i> Nova Tag
+    </button>
+</div>
+
+
+
+@if (!Model.GruposDeTags.Any())
+{
+    <div class="text-center py-5 bg-white rounded-3 shadow-sm card-mobile">
+        <i class="bi bi-tags display-4 text-muted d-block mb-2"></i>
+        <h6 class="fw-bold text-dark">Nenhuma tag cadastrada</h6>
+        <p class="text-muted small mb-0">Clique no botão "Nova Tag" acima para criar seus marcadores.</p>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var grupo in Model.GruposDeTags)
+        {
+            <div class="col-12 col-md-6">
+                <div class="card card-mobile border-0 shadow-sm h-100">
+                    <div class="card-header bg-white fw-bold text-uppercase text-muted small border-0 pt-3 pb-0">
+                        <i class="bi bi-folder2-open me-1 text-primary"></i> @grupo.Categoria
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var tag in grupo.Tags)
+                            {
+                                var emUso = tag.Apoiadores.Count > 0;
+
+                                <div class="badge bg-white text-dark border p-2 rounded-pill shadow-sm d-flex align-items-center gap-2">
+                                    <i class="bi bi-tag-fill text-primary"></i>
+                                    <span class="fw-bold fs-6">@tag.Nome</span>
+
+                                    <span class="badge bg-primary-subtle text-primary rounded-pill small">
+                                        @tag.Apoiadores.Count
+                                    </span>
+
+                                    <div class="vr my-1"></div>
+
+                                    <!-- Botão Editar (Passando a quantidade de apoiadores) -->
+                                    <button type="button" class="btn btn-link text-primary p-0 text-decoration-none"
+                                            onclick="editarTag('@tag.Id', '@tag.Nome', '@tag.Categoria', @tag.Apoiadores.Count)" title="Editar Tag">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+
+                                    <!-- Botão Excluir (Desabilitado caso esteja em uso) -->
+                                    @if (emUso)
+                                    {
+                                        <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="Não é possível excluir tags em uso">
+                                            <button type="button" class="btn btn-link text-muted opacity-50 p-0 text-decoration-none" disabled>
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-page-handler="Excluir" asp-route-id="@tag.Id"
+                                              onsubmit="return confirm('Tem certeza que deseja excluir a tag \'@tag.Nome\'?');" class="d-inline">
+                                            <button type="submit" class="btn btn-link text-danger p-0 text-decoration-none" title="Excluir Tag">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Modal de Cadastro / Edição -->
+<div class="modal fade" id="modalTag" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow card-mobile">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="fw-bold text-primary mb-0" id="modalTagTitle">Nova Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Salvar">
+                <div class="modal-body">
+                    <div id="avisoUsoTag" class="alert alert-warning small py-2 d-none mb-3" role="alert"></div>
+                    <input type="hidden" asp-for="Input.Id" id="tagId" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Nome" class="form-label fw-medium"></label>
+                        <input asp-for="Input.Nome" id="tagNome" class="form-control form-control-lg" placeholder="Ex: Voto Certo, Pauta Saúde..." />
+                        <span asp-validation-for="Input.Nome" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Categoria" class="form-label fw-medium"></label>
+                        <input asp-for="Input.Categoria" id="tagCategoria" class="form-control" placeholder="Ex: Engajamento, Pauta, Perfil" list="categoriasExistentes" />
+                        <datalist id="categoriasExistentes">
+                            @foreach (var grupo in Model.GruposDeTags)
+                            {
+                                <option value="@grupo.Categoria"></option>
+                            }
+                        </datalist>
+                        <span asp-validation-for="Input.Categoria" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Salvar Tag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let modalTagBS;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            modalTagBS = new bootstrap.Modal(document.getElementById('modalTag'));
+
+            // Inicializa os Tooltips do Bootstrap para o ícone de exclusão desabilitado
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        function abrirModalNovaTag() {
+            document.getElementById('modalTagTitle').innerText = 'Nova Tag';
+            document.getElementById('tagId').value = '';
+            document.getElementById('tagNome').value = '';
+            document.getElementById('tagCategoria').value = 'Engajamento';
+
+            const aviso = document.getElementById('avisoUsoTag');
+            aviso.classList.add('d-none');
+            aviso.innerHTML = '';
+
+            modalTagBS.show();
+        }
+
+        function editarTag(id, nome, categoria, qtdApoiadores) {
+            document.getElementById('modalTagTitle').innerText = 'Editar Tag';
+            document.getElementById('tagId').value = id;
+            document.getElementById('tagNome').value = nome;
+            document.getElementById('tagCategoria').value = categoria;
+
+            const aviso = document.getElementById('avisoUsoTag');
+            if (qtdApoiadores > 0) {
+                aviso.innerHTML = `<i class="bi bi-info-circle me-1"></i> Esta tag está associada a <strong>${qtdApoiadores}</strong> apoiador(es). Alterar seu nome atualizará o registro de todos eles.`;
+                aviso.classList.remove('d-none');
+            } else {
+                aviso.classList.add('d-none');
+                aviso.innerHTML = '';
+            }
+
+            modalTagBS.show();
+        }
+    </script>
+}

@@ -1,0 +1,527 @@
+﻿@page "{id:guid}"
+@model WebApp.Pages.Apoiadores.DetalhesModel
+@{
+    ViewData["Title"] = "Detalhes do Apoiador";
+}
+
+<div class="container-fluid mt-4 mb-5">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <!-- Card de Informações Gerais -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Ficha do Apoiador: @Model.Apoiador.Nome</h5>
+            <div>
+                <a asp-page="Editar" asp-route-id="@Model.Apoiador.Id" class="btn btn-light btn-sm me-1">Editar</a>
+                <a asp-page="Index" class="btn btn-outline-light btn-sm">Voltar</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-3 text-center border-end">
+                    <div class="display-6 text-secondary mb-2">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <h4>@Model.Apoiador.Nome</h4>
+                    <p class="text-muted mb-1">@(string.IsNullOrEmpty(Model.Apoiador.Apelido) ? "-" : $"\"{Model.Apoiador.Apelido}\"")</p>
+                    <span class="badge @(Model.Apoiador.StatusTexto == "ATIVO" ? "bg-success" : "bg-danger") fs-6 mb-3">
+                        @Model.Apoiador.StatusTexto
+                    </span>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Apoiador.DescricaoStatus))
+                    {
+                        <div class="alert @(Model.Apoiador.StatusTexto == "ATIVO" ? "alert-success" : "alert-warning") text-start fs-7 mt-2 p-2 rounded shadow-sm">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            <strong>Motivo do Status:</strong>
+                            <p class="mb-0 mt-1 text-break">@Model.Apoiador.DescricaoStatus</p>
+                            @if (Model.Apoiador.DataStatus.HasValue)
+                            {
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-clock me-1"></i>Em @Model.Apoiador.DataStatus.Value.ToString("dd/MM/yyyy HH:mm")
+                                </small>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">Informações Pessoais</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">CPF:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Cpf ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Celular:</dt>
+                                <dd class="col-sm-8">@Model.Apoiador.Celular</dd>
+
+                                <dt class="col-sm-4">Telefone Fixo:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Telefone ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">E-mail:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Email ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Nascimento:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.DataNascimento?.ToString("dd/MM/yyyy") ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Profissão:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Profissao ?? "Não informada")</dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">Endereço & Organização</h6>
+                            <dl class="row">
+                                <dt class="col-sm-4">Endereço:</dt>
+                                <dd class="col-sm-8">
+                                    @Model.Apoiador.Logradouro, @Model.Apoiador.Numero <br />
+                                    @Model.Apoiador.Bairro - @Model.Apoiador.Cidade/@Model.Apoiador.Uf
+                                </dd>
+
+                                <dt class="col-sm-4">CEP:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Cep ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Padrinho:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Padrinho?.Nome ?? "Nenhum")</dd>
+
+                                <dt class="col-sm-4">Cadastrado em:</dt>
+                                <dd class="col-sm-8">@Model.Apoiador.CriadoEm?.ToString("dd/MM/yyyy HH:mm")</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Apoiador.Observacoes))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Observações</h6>
+                                <p class="bg-light p-3 rounded">@Model.Apoiador.Observacoes</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Histórico de Interações -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-primary">
+                <i class="bi bi-chat-dots-fill me-2"></i>Histórico de Interações
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalNovaInteracao">
+                    <i class="bi bi-plus-lg me-1"></i>Nova Interação
+                </button>
+                <span class="badge bg-secondary rounded-pill">Página @Model.PaginaAtual de @(Model.TotalPaginas == 0 ? 1 : Model.TotalPaginas)</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Interacoes.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-chat-square-quote display-4 text-muted"></i>
+                    <p class="text-muted mt-2 mb-0">Nenhuma interação registrada para este apoiador.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tipo / Categoria</th>
+                                <th>Data / Hora</th>
+                                <th>Status Envio</th>
+                                <th>Retorno</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var interacao in Model.Interacoes)
+                            {
+                                var statusUpper = interacao.StatusInteracao?.ToUpper() ?? "";
+                                var situacaoUpper = interacao.Situacao?.ToUpper() ?? "";
+                                var tipoInteracaoTexto = string.IsNullOrWhiteSpace(interacao.TipoInteracao) ? "GERAL" : interacao.TipoInteracao;
+                                var tipoMensagemTexto = string.IsNullOrWhiteSpace(interacao.TipoMensagem) ? "SISTEMA" : interacao.TipoMensagem;
+                                var dataHoraTexto = interacao.DataHora?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
+                                var alteradoEmTexto = interacao.AlteradoEm?.ToString("dd/MM/yyyy HH:mm:ss") ?? "-";
+
+                                <tr class="item-interacao cursor-pointer" style="cursor: pointer;"
+                                    data-id="@interacao.Id"
+                                    data-pessoa-id="@interacao.PessoaId"
+                                    data-tipo-interacao="@tipoInteracaoTexto"
+                                    data-tipo-mensagem="@tipoMensagemTexto"
+                                    data-data-hora="@dataHoraTexto"
+                                    data-alterado-em="@alteradoEmTexto"
+                                    data-status-envio="@(interacao.StatusInteracao ?? "-")"
+                                    data-retorno="@(interacao.Situacao ?? "-")"
+                                    data-remetente="@(interacao.Remetente ?? "Sistema")"
+                                    data-mensagem="@interacao.Mensagem">
+                                    <td>
+                                        <span class="badge bg-light text-dark border fw-bold">
+                                            @tipoInteracaoTexto
+                                        </span>
+                                        <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">
+                                            Origem: @tipoMensagemTexto
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small class="fw-bold d-block text-dark">
+                                            @interacao.DataHora?.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @if (statusUpper.Contains("ENVIADO"))
+                                        {
+                                            <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i>Enviado</span>
+                                        }
+                                        else if (statusUpper.Contains("ENFILEIRADO"))
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>Enfileirado</span>
+                                        }
+                                        else if (statusUpper.Contains("REJEITADO"))
+                                        {
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Sem WhatsApp</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@(interacao.StatusInteracao ?? "-")</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (situacaoUpper.Contains("POSITIVA"))
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success">
+                                                <i class="bi bi-hand-thumbs-up-fill me-1"></i>Resposta Positiva
+                                            </span>
+                                        }
+                                        else if (situacaoUpper.Contains("SEM_RESPOSTA"))
+                                        {
+                                            <span class="badge bg-light text-muted border">Sem Resposta</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info-subtle text-info border border-info">
+                                                @(interacao.Situacao ?? "-")
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (Model.TotalPaginas > 1)
+                {
+                    <div class="card-footer bg-white d-flex justify-content-center py-2">
+                        <nav aria-label="Navegação das interações">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                                    <a class="page-link" asp-page="./Detalhes" asp-route-id="@Model.Apoiador.Id" asp-route-pagina="@(Model.PaginaAtual - 1)">Anterior</a>
+                                </li>
+                                @for (int i = 1; i <= Model.TotalPaginas; i++)
+                                {
+                                    <li class="page-item @(i == Model.PaginaAtual ? "active" : "")">
+                                        <a class="page-link" asp-page="./Detalhes" asp-route-id="@Model.Apoiador.Id" asp-route-pagina="@i">@i</a>
+                                    </li>
+                                }
+                                <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                                    <a class="page-link" asp-page="./Detalhes" asp-route-id="@Model.Apoiador.Id" asp-route-pagina="@(Model.PaginaAtual + 1)">Próxima</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Nova Interação -->
+<div class="modal fade" id="modalNovaInteracao" tabindex="-1" aria-labelledby="modalNovaInteracaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="AdicionarInteracao">
+                <input type="hidden" asp-for="InteracaoCriacao.PessoaId" value="@Model.Apoiador.Id" />
+
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="modalNovaInteracaoLabel">
+                        <i class="bi bi-chat-plus me-2"></i>Registrar Nova Interação
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Tipo / Categoria</label>
+                            <select asp-for="InteracaoCriacao.TipoInteracao" class="form-select">
+                                <option value="AVULSO">AVULSO</option>
+                                <option value="PARABENS">PARABENS</option>
+                                <option value="BOAS_VINDAS_01">BOAS VINDAS 01</option>
+                                <option value="BOAS_VINDAS_02">BOAS VINDAS 02</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Origem / Canal</label>
+                            <select asp-for="InteracaoCriacao.TipoMensagem" class="form-select">
+                                <option value="MANUAL">MANUAL</option>
+                                <option value="AUTOMATICA">AUTOMATICA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Status do Envio</label>
+                            <select asp-for="InteracaoCriacao.StatusInteracao" class="form-select">
+                                <option value="ENVIADO">ENVIADO</option>
+                                <option value="enfileirado">ENFILEIRADO</option>
+                                <option value="Rejeitado_Sem_WhatsApp">REJEITADO (Sem WhatsApp)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Retorno do Eleitor</label>
+                            <select asp-for="InteracaoCriacao.Situacao" class="form-select">
+                                <option value="SEM_RESPOSTA">SEM RESPOSTA</option>
+                                <option value="RESPOSTA_POSITIVA">RESPOSTA POSITIVA</option>
+                                <option value="OUTROS">OUTROS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Conteúdo da Mensagem</label>
+                        <textarea asp-for="InteracaoCriacao.Mensagem" class="form-control" rows="5" placeholder="Digite aqui o texto da mensagem enviada ou recebida..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4">
+                        <i class="bi bi-check-lg me-1"></i>Salvar Interação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Visualização e Edição de Interação -->
+<div class="modal fade" id="modalDetalhesInteracao" tabindex="-1" aria-labelledby="modalDetalhesInteracaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="SalvarInteracao" asp-route-pagina="@Model.PaginaAtual">
+                <input type="hidden" asp-for="InteracaoEdicao.Id" id="inputInteracaoId" />
+                <input type="hidden" asp-for="InteracaoEdicao.PessoaId" id="inputPessoaId" />
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold" id="modalDetalhesInteracaoLabel">
+                        <i class="bi bi-chat-left-text me-2"></i>Detalhes da Interação
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="painelLeitura">
+                        <div class="row g-3 mb-3 bg-light p-3 rounded border">
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Tipo / Categoria</small>
+                                <span class="fw-bold text-primary" id="modalTipoInteracao">-</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Origem Envio</small>
+                                <span class="fw-semibold text-dark" id="modalTipoMensagem">-</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Status de Envio</small>
+                                <span class="fw-semibold" id="modalStatusEnvio">-</span>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <small class="text-muted d-block">Retorno do Eleitor</small>
+                                <span class="fw-semibold" id="modalRetorno">-</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary">Mensagem Registrada</label>
+                            <div class="p-3 bg-light rounded border text-break" id="modalConteudoMensagem" style="white-space: pre-line; max-height: 200px; overflow-y: auto;">
+                                -
+                            </div>
+                        </div>
+
+                        <div class="row g-3 border-top pt-3 text-muted" style="font-size: 0.85rem;">
+                            <div class="col-md-4">
+                                <i class="bi bi-person me-1"></i><strong>Remetente:</strong> <span id="modalRemetente">-</span>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="bi bi-calendar-event me-1"></i><strong>Data/Hora:</strong> <span id="modalDataHora">-</span>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="bi bi-clock-history me-1"></i><strong>Última Alteração:</strong> <span id="modalAlteradoEm">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modo de Edição com Comboboxes idênticas à criação -->
+                    <div id="painelEdicao" class="d-none">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Tipo / Categoria</label>
+                                <select asp-for="InteracaoEdicao.TipoInteracao" id="editTipoInteracao" class="form-select">
+                                    <option value="AVULSO">AVULSO</option>
+                                    <option value="PARABENS">PARABENS</option>
+                                    <option value="BOAS_VINDAS_01">BOAS VINDAS 01</option>
+                                    <option value="BOAS_VINDAS_02">BOAS VINDAS 02</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Origem / Canal</label>
+                                <select asp-for="InteracaoEdicao.TipoMensagem" id="editTipoMensagem" class="form-select">
+                                    <option value="MANUAL">MANUAL</option>
+                                    <option value="AUTOMATICA">AUTOMATICA</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Status do Envio</label>
+                                <select asp-for="InteracaoEdicao.StatusInteracao" id="editStatusEnvio" class="form-select">
+                                    <option value="ENVIADO">ENVIADO</option>
+                                    <option value="enfileirado">ENFILEIRADO</option>
+                                    <option value="Rejeitado_Sem_WhatsApp">REJEITADO (Sem WhatsApp)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Retorno do Eleitor</label>
+                                <select asp-for="InteracaoEdicao.Situacao" id="editRetorno" class="form-select">
+                                    <option value="SEM_RESPOSTA">SEM RESPOSTA</option>
+                                    <option value="RESPOSTA_POSITIVA">RESPOSTA POSITIVA</option>
+                                    <option value="OUTROS">OUTROS</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Conteúdo da Mensagem</label>
+                            <textarea asp-for="InteracaoEdicao.Mensagem" id="editMensagem" class="form-control" rows="5"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-primary rounded-pill" id="btnHabilitarEdicao" onclick="alternarModoEdicao(true)">
+                            <i class="bi bi-pencil me-1"></i>Editar Interação
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill d-none me-1" id="btnCancelarEdicao" onclick="alternarModoEdicao(false)">Cancelar</button>
+                        <button type="submit" class="btn btn-success rounded-pill px-4 d-none" id="btnSalvarEdicao">
+                            <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const linhasInteracao = document.querySelectorAll('.item-interacao');
+            const modalElement = document.getElementById('modalDetalhesInteracao');
+
+            if (!modalElement) return;
+
+            const modalBs = new bootstrap.Modal(modalElement);
+
+            linhasInteracao.forEach(linha => {
+                linha.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    const pessoaId = this.getAttribute('data-pessoa-id');
+                    const tipoInteracao = this.getAttribute('data-tipo-interacao') || '';
+                    const tipoMensagem = this.getAttribute('data-tipo-mensagem') || '';
+                    const statusEnvio = this.getAttribute('data-status-envio') || '';
+                    const retorno = this.getAttribute('data-retorno') || '';
+                    const remetente = this.getAttribute('data-remetente') || '';
+                    const dataHora = this.getAttribute('data-data-hora') || '';
+                    const alteradoEm = this.getAttribute('data-alterado-em') || '';
+                    const msg = this.getAttribute('data-mensagem') || '';
+
+                    // Preenche campos de leitura
+                    document.getElementById('inputInteracaoId').value = id;
+                    document.getElementById('inputPessoaId').value = pessoaId;
+                    document.getElementById('modalTipoInteracao').innerText = tipoInteracao;
+                    document.getElementById('modalTipoMensagem').innerText = tipoMensagem;
+                    document.getElementById('modalStatusEnvio').innerText = statusEnvio;
+                    document.getElementById('modalRetorno').innerText = retorno;
+                    document.getElementById('modalRemetente').innerText = remetente;
+                    document.getElementById('modalDataHora').innerText = dataHora;
+                    document.getElementById('modalAlteradoEm').innerText = alteradoEm;
+                    document.getElementById('modalConteudoMensagem').innerText = msg.trim() !== '' ? msg : 'Sem conteúdo de mensagem registrado.';
+
+                    // Seleção automática dos selects no painel de edição
+                    setSelectValue('editTipoInteracao', tipoInteracao);
+                    setSelectValue('editTipoMensagem', tipoMensagem);
+                    setSelectValue('editStatusEnvio', statusEnvio);
+                    setSelectValue('editRetorno', retorno);
+                    document.getElementById('editMensagem').value = msg;
+
+                    alternarModoEdicao(false);
+                    modalBs.show();
+                });
+            });
+        });
+
+        // Função auxiliar para marcar a opção correta mesmo com variações de case/espaços
+        function setSelectValue(selectId, value) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            const targetVal = value.trim().toUpperCase();
+            let encontrado = false;
+
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value.trim().toUpperCase() === targetVal) {
+                    select.selectedIndex = i;
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado && select.options.length > 0) {
+                select.selectedIndex = 0;
+            }
+        }
+
+        function alternarModoEdicao(habilitar) {
+            const painelLeitura = document.getElementById('painelLeitura');
+            const painelEdicao = document.getElementById('painelEdicao');
+            const btnHabilitar = document.getElementById('btnHabilitarEdicao');
+            const btnCancelar = document.getElementById('btnCancelarEdicao');
+            const btnSalvar = document.getElementById('btnSalvarEdicao');
+
+            if (habilitar) {
+                painelLeitura.classList.add('d-none');
+                painelEdicao.classList.remove('d-none');
+                btnHabilitar.classList.add('d-none');
+                btnCancelar.classList.remove('d-none');
+                btnSalvar.classList.remove('d-none');
+            } else {
+                painelLeitura.classList.remove('d-none');
+                painelEdicao.classList.add('d-none');
+                btnHabilitar.classList.remove('d-none');
+                btnCancelar.classList.add('d-none');
+                btnSalvar.classList.add('d-none');
+            }
+        }
+    </script>
+}

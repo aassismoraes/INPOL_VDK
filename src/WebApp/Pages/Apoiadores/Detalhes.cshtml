@@ -1,0 +1,490 @@
+﻿@page "{id:guid}"
+@model WebApp.Pages.Apoiadores.DetalhesModel
+@using Domain.Enums
+@{
+    ViewData["Title"] = "Detalhes do Apoiador";
+}
+
+<div class="container-fluid mt-4 mb-5">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <!-- Card de Informações Gerais do Apoiador -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Apoiador: @Model.Apoiador.Nome</h5>
+            <div class="d-flex align-items-center">
+                <!-- Botão de Aprovação (Visível apenas para Administrador/Assessor e se estiver pendente) -->
+                @if (Model.Apoiador.StatusTexto == "AGUARDANDO APROVAÇÃO" && (User.IsInRole("Administrador") || User.IsInRole("Assessor")))
+                {
+                    <form method="post" asp-page-handler="Aprovar" asp-route-id="@Model.Apoiador.Id" id="formAprovarApoiador" class="m-0 p-0">
+                        <button type="button" class="btn btn-success btn-sm me-1 fw-bold" onclick="confirmarAprovacao()">
+                            <i class="bi bi-check-circle-fill me-1"></i> Aprovar Cadastro
+                        </button>
+                    </form>
+                }
+
+                <a asp-page="Editar" asp-route-id="@Model.Apoiador.Id" class="btn btn-light btn-sm me-1">Editar</a>
+                <a asp-page="Index" class="btn btn-outline-light btn-sm">Voltar</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <!-- Coluna de Resumo (Sempre Visível) -->
+                <div class="col-md-3 text-center border-end-md pb-3 pb-md-0">
+                    <div class="display-6 text-secondary mb-2">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <h4>@Model.Apoiador.Nome</h4>
+                    <p class="text-muted mb-1">@(string.IsNullOrEmpty(Model.Apoiador.Apelido) ? "-" : $"\"{Model.Apoiador.Apelido}\"")</p>
+                    <span class="badge @(Model.Apoiador.StatusTexto == "ATIVO" ? "bg-success" : "bg-danger") fs-6 mb-2">
+                        @Model.Apoiador.StatusTexto
+                    </span>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Apoiador.DescricaoStatus))
+                    {
+                        <div class="alert @(Model.Apoiador.StatusTexto == "ATIVO" ? "alert-success" : "alert-warning") text-start fs-7 mt-2 p-2 rounded shadow-sm">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            <strong>Motivo do Status:</strong>
+                            <p class="mb-0 mt-1 text-break">@Model.Apoiador.DescricaoStatus</p>
+                            @if (Model.Apoiador.DataStatus.HasValue)
+                            {
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-clock me-1"></i>Em @Model.Apoiador.DataStatus.Value.ToString("dd/MM/yyyy HH:mm")
+                                </small>
+                            }
+                        </div>
+                    }
+
+                    <!-- Botão de Sanfona Visível Apenas em Dispositivos Móveis (d-md-none) -->
+                    <div class="d-grid gap-2 mt-3 d-md-none">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInfoPessoais" aria-expanded="false" aria-controls="collapseInfoPessoais" id="btnToggleInfoPessoais">
+                            <i class="bi bi-chevron-down me-1"></i> Ver Dados Pessoais e Endereço
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Coluna de Detalhes Pessoais (Colapsada no Mobile, Aberta no Desktop via 'd-md-block') -->
+                <div class="col-md-9 collapse d-md-block pt-3 pt-md-0" id="collapseInfoPessoais">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">Informações Pessoais</h6>
+                            <dl class="row mb-0 mb-md-3">
+                                <dt class="col-sm-4">CPF:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Cpf ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Celular:</dt>
+                                <dd class="col-sm-8">@Model.Apoiador.Celular</dd>
+
+                                <dt class="col-sm-4">Telefone Fixo:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Telefone ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">E-mail:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Email ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Nascimento:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.DataNascimento?.ToString("dd/MM/yyyy") ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Profissão:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Profissao ?? "Não informada")</dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6 mt-3 mt-md-0">
+                            <h6 class="text-primary border-bottom pb-2">Endereço & Organização</h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Endereço:</dt>
+                                <dd class="col-sm-8">
+                                    @Model.Apoiador.Logradouro, @Model.Apoiador.Numero <br />
+                                    @Model.Apoiador.Bairro - @Model.Apoiador.Cidade/@Model.Apoiador.Uf
+                                </dd>
+
+                                <dt class="col-sm-4">CEP:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Cep ?? "Não informado")</dd>
+
+                                <dt class="col-sm-4">Padrinho:</dt>
+                                <dd class="col-sm-8">@(Model.Apoiador.Padrinho?.Nome ?? "Nenhum")</dd>
+
+                                <dt class="col-sm-4">Cadastrado em:</dt>
+                                <dd class="col-sm-8">@Model.Apoiador.CriadoEm?.ToString("dd/MM/yyyy HH:mm")</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Apoiador.Observacoes))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">Observações</h6>
+                                <p class="bg-light p-3 rounded mb-0">@Model.Apoiador.Observacoes</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Histórico de Interações -->
+   
+    @if (!User.IsInRole("CaboEleitoral"))
+    {
+        <!-- Card Histórico de Interações -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-chat-dots-fill me-2"></i>Histórico de Interações
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalNovaInteracao">
+                        <i class="bi bi-plus-lg me-1"></i>Nova Interação
+                    </button>
+                    <span class="badge bg-secondary rounded-pill" id="badge-pagina-info">Página @Model.PaginaAtual de @(Model.TotalPaginas == 0 ? 1 : Model.TotalPaginas)</span>
+                </div>
+            </div>
+            <div class="card-body p-0" id="container-interacoes">
+                @if (!Model.Interacoes.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-chat-square-quote display-4 text-muted"></i>
+                        <p class="text-muted mt-2 mb-0">Nenhuma interação registrada para este apoiador.</p>
+                    </div>
+                }
+                else
+                {
+                    <partial name="_InteracoesTablePartial" model="Model" />
+                }
+            </div>
+        </div>
+
+        <!-- Modal Adicionar Nova Interação -->
+        <div class="modal fade" id="modalNovaInteracao" tabindex="-1" aria-labelledby="modalNovaInteracaoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <form method="post" asp-page-handler="AdicionarInteracao">
+                        <input type="hidden" asp-for="InteracaoCriacao.PessoaId" value="@Model.Apoiador.Id" />
+
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title fw-bold" id="modalNovaInteracaoLabel">
+                                <i class="bi bi-chat-plus me-2"></i>Registrar Nova Interação
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Tipo / Categoria</label>
+                                    <select asp-for="InteracaoCriacao.TipoInteracao" asp-items="Html.GetEnumSelectList<TipoInteracao>()" class="form-select"></select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Origem / Canal</label>
+                                    <select asp-for="InteracaoCriacao.TipoMensagem" asp-items="Html.GetEnumSelectList<TipoMensagem>()" class="form-select"></select>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Status do Envio</label>
+                                    <select asp-for="InteracaoCriacao.StatusInteracao" asp-items="Html.GetEnumSelectList<StatusInteracao>()" class="form-select"></select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-medium">Retorno do Eleitor</label>
+                                    <select asp-for="InteracaoCriacao.Situacao" asp-items="Html.GetEnumSelectList<SituacaoInteracao>()" class="form-select"></select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Conteúdo da Mensagem</label>
+                                <textarea asp-for="InteracaoCriacao.Mensagem" class="form-control" rows="5" placeholder="Digite aqui o texto da mensagem enviada ou recebida..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-success rounded-pill px-4">
+                                <i class="bi bi-check-lg me-1"></i>Salvar Interação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Visualização e Edição de Interação -->
+        <div class="modal fade" id="modalDetalhesInteracao" tabindex="-1" aria-labelledby="modalDetalhesInteracaoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <form method="post" asp-page-handler="SalvarInteracao" asp-route-pagina="@Model.PaginaAtual">
+                        <input type="hidden" asp-for="InteracaoEdicao.Id" id="inputInteracaoId" />
+                        <input type="hidden" asp-for="InteracaoEdicao.PessoaId" id="inputPessoaId" />
+
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title fw-bold" id="modalDetalhesInteracaoLabel">
+                                <i class="bi bi-chat-left-text me-2"></i>Detalhes da Interação
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div id="painelLeitura">
+                                <div class="row g-3 mb-3 bg-light p-3 rounded border">
+                                    <div class="col-6 col-md-3">
+                                        <small class="text-muted d-block">Tipo / Categoria</small>
+                                        <span class="fw-bold text-primary" id="modalTipoInteracao">-</span>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <small class="text-muted d-block">Origem Envio</small>
+                                        <span class="fw-semibold text-dark" id="modalTipoMensagem">-</span>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <small class="text-muted d-block">Status de Envio</small>
+                                        <span class="fw-semibold" id="modalStatusEnvio">-</span>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <small class="text-muted d-block">Retorno do Eleitor</small>
+                                        <span class="fw-semibold" id="modalRetorno">-</span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-secondary">Mensagem Registrada</label>
+                                    <div class="p-3 bg-light rounded border text-break" id="modalConteudoMensagem" style="white-space: pre-line; max-height: 200px; overflow-y: auto;">
+                                        -
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 border-top pt-3 text-muted" style="font-size: 0.85rem;">
+                                    <div class="col-md-4">
+                                        <i class="bi bi-person me-1"></i><strong>Remetente:</strong> <span id="modalRemetente">-</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="bi bi-calendar-event me-1"></i><strong>Data/Hora:</strong> <span id="modalDataHora">-</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <i class="bi bi-clock-history me-1"></i><strong>Última Alteração:</strong> <span id="modalAlteradoEm">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="painelEdicao" class="d-none">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Tipo / Categoria</label>
+                                        <select asp-for="InteracaoEdicao.TipoInteracao" id="editTipoInteracao" asp-items="Html.GetEnumSelectList<TipoInteracao>()" class="form-select"></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Origem / Canal</label>
+                                        <select asp-for="InteracaoEdicao.TipoMensagem" id="editTipoMensagem" asp-items="Html.GetEnumSelectList<TipoMensagem>()" class="form-select"></select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Status do Envio</label>
+                                        <select asp-for="InteracaoEdicao.StatusInteracao" id="editStatusEnvio" asp-items="Html.GetEnumSelectList<StatusInteracao>()" class="form-select"></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-medium">Retorno do Eleitor</label>
+                                        <select asp-for="InteracaoEdicao.Situacao" id="editRetorno" asp-items="Html.GetEnumSelectList<SituacaoInteracao>()" class="form-select"></select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Conteúdo da Mensagem</label>
+                                    <textarea asp-for="InteracaoEdicao.Mensagem" id="editMensagem" class="form-control" rows="5"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer bg-light d-flex justify-content-between">
+                            <div>
+                                <button type="button" class="btn btn-outline-primary rounded-pill" id="btnHabilitarEdicao" onclick="alternarModoEdicao(true)">
+                                    <i class="bi bi-pencil me-1"></i>Editar Interação
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Fechar</button>
+                                <button type="button" class="btn btn-outline-secondary rounded-pill d-none me-1" id="btnCancelarEdicao" onclick="alternarModoEdicao(false)">Cancelar</button>
+                                <button type="submit" class="btn btn-success rounded-pill px-4 d-none" id="btnSalvarEdicao">
+                                    <i class="bi bi-check-lg me-1"></i>Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        const pessoaId = '@Model.Apoiador.Id';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            bindEventosTabela();
+            bindToggleCollapseIcon();
+        });
+
+        // Alterna o texto e ícone do botão de colapso no mobile
+        function bindToggleCollapseIcon() {
+            const collapseElement = document.getElementById('collapseInfoPessoais');
+            const btnToggle = document.getElementById('btnToggleInfoPessoais');
+
+            if (collapseElement && btnToggle) {
+                collapseElement.addEventListener('show.bs.collapse', function () {
+                    btnToggle.innerHTML = '<i class="bi bi-chevron-up me-1"></i> Ocultar Dados Pessoais';
+                });
+                collapseElement.addEventListener('hide.bs.collapse', function () {
+                    btnToggle.innerHTML = '<i class="bi bi-chevron-down me-1"></i> Ver Dados Pessoais e Endereço';
+                });
+            }
+        }
+
+        function bindEventosTabela() {
+            const container = document.getElementById('container-interacoes');
+            if (!container) return;
+
+            const btnsPaginacao = container.querySelectorAll('.btn-paginacao-ajax');
+            btnsPaginacao.forEach(btn => {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const paginaTarget = this.getAttribute('data-pagina');
+                    if (paginaTarget) {
+                        carregarPaginaInteracoes(paginaTarget);
+                    }
+                });
+            });
+
+            const linhasInteracao = container.querySelectorAll('.item-interacao');
+            const modalElement = document.getElementById('modalDetalhesInteracao');
+            if (!modalElement) return;
+
+            const modalBs = bootstrap.Modal.getOrCreateInstance(modalElement);
+
+            linhasInteracao.forEach(linha => {
+                linha.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    const pessoaIdAttr = this.getAttribute('data-pessoa-id');
+                    const tipoInteracao = this.getAttribute('data-tipo-interacao') || '';
+                    const tipoMensagem = this.getAttribute('data-tipo-mensagem') || '';
+                    const statusEnvio = this.getAttribute('data-status-envio') || '';
+                    const retorno = this.getAttribute('data-retorno') || '';
+                    const remetente = this.getAttribute('data-remetente') || '';
+                    const dataHora = this.getAttribute('data-data-hora') || '';
+                    const alteradoEm = this.getAttribute('data-alterado-em') || '';
+                    const msg = this.getAttribute('data-mensagem') || '';
+
+                    document.getElementById('inputInteracaoId').value = id;
+                    document.getElementById('inputPessoaId').value = pessoaIdAttr;
+                    document.getElementById('modalTipoInteracao').innerText = tipoInteracao;
+                    document.getElementById('modalTipoMensagem').innerText = tipoMensagem;
+                    document.getElementById('modalStatusEnvio').innerText = statusEnvio;
+                    document.getElementById('modalRetorno').innerText = retorno;
+                    document.getElementById('modalRemetente').innerText = remetente;
+                    document.getElementById('modalDataHora').innerText = dataHora;
+                    document.getElementById('modalAlteradoEm').innerText = alteradoEm;
+                    document.getElementById('modalConteudoMensagem').innerText = msg.trim() !== '' ? msg : 'Sem conteúdo de mensagem registrado.';
+
+                    setSelectByTextOrValue('editTipoInteracao', tipoInteracao);
+                    setSelectByTextOrValue('editTipoMensagem', tipoMensagem);
+                    setSelectByTextOrValue('editStatusEnvio', statusEnvio);
+                    setSelectByTextOrValue('editRetorno', retorno);
+                    document.getElementById('editMensagem').value = msg;
+
+                    alternarModoEdicao(false);
+                    modalBs.show();
+                });
+            });
+        }
+
+        function carregarPaginaInteracoes(pagina) {
+            if (typeof showLoader === 'function') showLoader();
+
+            fetch(`?handler=InteracoesPartial&id=${pessoaId}&pagina=${pagina}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro ao carregar os dados.');
+                    return response.text();
+                })
+                .then(html => {
+                    const container = document.getElementById('container-interacoes');
+                    if (container) {
+                        container.innerHTML = html;
+                        bindEventosTabela();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                })
+                .finally(() => {
+                    if (typeof hideLoader === 'function') hideLoader();
+                });
+        }
+
+        function setSelectByTextOrValue(selectId, rawValue) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const target = rawValue.trim().toUpperCase();
+            let encontrado = false;
+
+            for (let i = 0; i < select.options.length; i++) {
+                const optText = select.options[i].text.trim().toUpperCase();
+                const optVal = select.options[i].value.trim().toUpperCase();
+
+                if (optText === target || optVal === target || optText.replace(/[^A-Z0-9]/g, '') === target.replace(/[^A-Z0-9]/g, '')) {
+                    select.selectedIndex = i;
+                    encontrado = true;
+                    break;
+                }
+            }
+            if (!encontrado && select.options.length > 0) {
+                select.selectedIndex = 0;
+            }
+        }
+
+        function alternarModoEdicao(habilitar) {
+            const painelLeitura = document.getElementById('painelLeitura');
+            const painelEdicao = document.getElementById('painelEdicao');
+            const btnHabilitar = document.getElementById('btnHabilitarEdicao');
+            const btnCancelar = document.getElementById('btnCancelarEdicao');
+            const btnSalvar = document.getElementById('btnSalvarEdicao');
+
+            if (habilitar) {
+                painelLeitura.classList.add('d-none');
+                painelEdicao.classList.remove('d-none');
+                btnHabilitar.classList.add('d-none');
+                btnCancelar.classList.remove('d-none');
+                btnSalvar.classList.remove('d-none');
+            } else {
+                painelLeitura.classList.remove('d-none');
+                painelEdicao.classList.add('d-none');
+                btnHabilitar.classList.remove('d-none');
+                btnCancelar.classList.add('d-none');
+                btnSalvar.classList.add('d-none');
+            }
+        }
+
+function confirmarAprovacao() {
+            Swal.fire({
+                title: 'Aprovar Apoiador?',
+                text: "O cadastro deste apoiador será ativado e ele fará parte da base oficial.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sim, aprovar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (typeof showLoader === 'function') showLoader();
+                    document.getElementById('formAprovarApoiador').submit();
+                }
+            });
+        }
+
+    </script>
+}

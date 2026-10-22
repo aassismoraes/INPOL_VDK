@@ -1,0 +1,95 @@
+﻿@page
+@model WebApp.Pages.Tags.IndexModel
+@{
+    ViewData["Title"] = "Gestão de Tags";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8">
+
+        <!-- Cabeçalho -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-tags-fill text-primary me-2"></i>Tags de Segmentação</h4>
+                <small class="text-muted">Categorize e segmente sua base de eleitores e apoiadores</small>
+            </div>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show card-mobile mb-3" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Form de Cadastro Rápido de Tag -->
+        <div class="card card-mobile shadow-sm mb-4 border-0">
+            <div class="card-body p-3">
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-plus-circle me-1 text-success"></i> Nova Tag</h6>
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-5">
+                            <label asp-for="TagInput.Nome" class="form-label small fw-medium">Nome da Tag</label>
+                            <input asp-for="TagInput.Nome" class="form-control" placeholder="Ex: Voto Certo, Pauta Saúde..." />
+                            <span asp-validation-for="TagInput.Nome" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <label asp-for="TagInput.Categoria" class="form-label small fw-medium">Categoria</label>
+                            <input asp-for="TagInput.Categoria" class="form-control" list="listaCategorias" placeholder="Ex: Engajamento, Pauta..." />
+                            <datalist id="listaCategorias">
+                                @foreach (var cat in Model.CategoriasSugeridas)
+                                {
+                                    <option value="@cat"></option>
+                                }
+                            </datalist>
+                            <span asp-validation-for="TagInput.Categoria" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12 col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold">
+                                Salvar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Listagem Agrupada por Categoria -->
+        @if (!Model.Tags.Any())
+        {
+            <div class="text-center py-5 bg-white rounded-3 shadow-sm card-mobile">
+                <i class="bi bi-tag display-4 text-muted d-block mb-2"></i>
+                <h6 class="fw-bold text-dark">Nenhuma tag cadastrada</h6>
+                <p class="text-muted small mb-0">Utilize o formulário acima para criar suas primeiras tags de segmentação.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var grupo in Model.Tags.GroupBy(t => t.Categoria))
+            {
+                <div class="mb-4">
+                    <h6 class="fw-bold text-uppercase text-muted small mb-2"><i class="bi bi-folder2-open me-1"></i> @grupo.Key</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var tag in grupo)
+                        {
+                            <div class="badge bg-white text-dark border p-2 rounded-pill shadow-sm d-flex align-items-center gap-2">
+                                <i class="bi bi-tag-fill text-primary"></i>
+                                <span class="fw-bold fs-6">@tag.Nome</span>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill small">
+                                    @tag.Apoiadores.Count @(tag.Apoiadores.Count == 1 ? "apoiador" : "apoiadores")
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

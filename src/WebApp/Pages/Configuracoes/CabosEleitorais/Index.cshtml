@@ -1,0 +1,581 @@
+﻿@page
+@model WebApp.Pages.Configuracoes.CabosEleitorais.IndexModel
+@{
+    ViewData["Title"] = "Cabos Eleitorais";
+
+    string ObterInicial(string? nome) =>
+        !string.IsNullOrWhiteSpace(nome) ? nome.Trim()[0].ToString().ToUpper() : "?";
+}
+
+<div class="container-fluid px-3 py-4">
+    <!-- Header da Página -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-people-fill text-primary me-2"></i>Cabos Eleitorais
+            </h4>
+            <p class="text-muted small mb-0">Cadastre e gerencie a rede de lideranças, áreas de influência e base territorial.</p>
+        </div>
+
+        <button type="button" class="btn btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="abrirModalNovo()">
+            <i class="bi bi-person-plus-fill me-1"></i> Adicionar Cabo Eleitoral
+        </button>
+    </div>
+
+    <!-- Card de Filtros e Pesquisa -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 rounded-start-pill ps-3">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" asp-for="TermoBusca" class="form-control bg-light border-start-0 rounded-end-pill" placeholder="Buscar por nome, e-mail, área ou bairro..." aria-label="Termo de busca" />
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <select asp-for="StatusFiltro" class="form-select rounded-pill" aria-label="Filtrar por status">
+                        <option value="">Todos os Status</option>
+                        <option value="ativos">Apenas Ativos</option>
+                        <option value="inativos">Apenas Inativos</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <select asp-for="TamanhoPagina" class="form-select rounded-pill" onchange="this.form.submit()" aria-label="Itens por página">
+                        <option value="10">10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex gap-1">
+                    <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold">
+                        Filtrar
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(Model.TermoBusca) || !string.IsNullOrWhiteSpace(Model.StatusFiltro))
+                    {
+                        <a asp-page="./Index" class="btn btn-outline-secondary rounded-circle" title="Limpar Filtros" aria-label="Limpar Filtros">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Listagem -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Cabo Eleitoral</th>
+                        <th>Área de Influência</th>
+                        <th>Profissão / Local</th>
+                        <th>Contato</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.CabosEleitorais.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-people fs-3 d-block mb-1"></i>
+                                Nenhum cabo eleitoral encontrado.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.CabosEleitorais)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            @ObterInicial(item.Nome)
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(item.Nome) ? "Sem nome" : item.Nome)</div>
+                                            <small class="text-muted">@(item.Email ?? "Sem e-mail informado")</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-primary border border-primary-subtle fw-medium px-2 py-1">
+                                        <i class="bi bi-geo-alt me-1"></i>@(string.IsNullOrWhiteSpace(item.AreaInfluencia) ? "Geral" : item.AreaInfluencia)
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="small fw-medium text-dark">@(item.Profissao ?? "Não informada")</div>
+                                    <small class="text-muted">@(item.LocalTrabalho ?? "-")</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted d-block">@(item.Telefone ?? "-")</small>
+                                </td>
+                                <td>
+                                    @if (item.Ativo)
+                                    {
+                                        <span class="badge bg-success-subtle text-success fw-semibold px-2 py-1">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Ativo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger fw-semibold px-2 py-1">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i> Inativo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex align-items-center justify-content-end gap-1">
+                                        <button type="button" class="btn btn-sm btn-light rounded-circle p-2"
+                                                title="Editar" aria-label="Editar cabo eleitoral"
+                                                onclick="abrirModalEditar(@System.Text.Json.JsonSerializer.Serialize(item))">
+                                            <i class="bi bi-pencil-fill text-secondary"></i>
+                                        </button>
+
+                                       @*  <form method="post" asp-page-handler="AlternarStatus" asp-route-id="@item.Id" 
+                                              asp-route-termoBusca="@Model.TermoBusca" asp-route-statusFiltro="@Model.StatusFiltro" 
+                                              asp-route-paginaAtual="@Model.PaginaAtual" asp-route-tamanhoPagina="@Model.TamanhoPagina" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-light rounded-circle p-2" title="@(item.Ativo ? "Desativar" : "Ativar")" aria-label="@(item.Ativo ? "Desativar" : "Ativar") cabo eleitoral">
+                                                <i class="bi @(item.Ativo ? "bi-slash-circle text-warning" : "bi-check-circle text-success")"></i>
+                                            </button>
+                                        </form> *@
+
+                                        <form method="post" asp-page-handler="Remover" asp-route-id="@item.Id" 
+                                              asp-route-termoBusca="@Model.TermoBusca" asp-route-statusFiltro="@Model.StatusFiltro" 
+                                              asp-route-paginaAtual="@Model.PaginaAtual" asp-route-tamanhoPagina="@Model.TamanhoPagina" class="d-inline form-remover" data-nome="@item.Nome">
+                                            <button type="submit" class="btn btn-sm btn-light rounded-circle p-2" title="Remover" aria-label="Remover cabo eleitoral">
+                                                <i class="bi bi-trash3-fill text-danger"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+       <!-- Footer com Paginação Otimizada -->
+        @if (Model.TotalPaginas > 1 || Model.TotalRegistros > 0)
+        {
+            <div class="card-footer bg-white border-0 py-3 d-flex flex-column flex-md-row align-items-center justify-content-between gap-2 border-top">
+                <!-- Texto Informativo -->
+                <div class="small text-muted text-center text-md-start">
+                    Mostrando <strong>@((Model.PaginaAtual - 1) * Model.TamanhoPagina + (Model.TotalRegistros > 0 ? 1 : 0))</strong>
+                    até <strong>@(Math.Min(Model.PaginaAtual * Model.TamanhoPagina, Model.TotalRegistros))</strong>
+                    de <strong>@Model.TotalRegistros</strong> registros
+                </div>
+
+                <!-- Navegação de Páginas com Janela Dinâmica -->
+                @if (Model.TotalPaginas > 1)
+                {
+                    <nav aria-label="Navegação da página">
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+
+                            <!-- Botão Anterior -->
+                            <li class="page-item @(Model.PaginaAtual == 1 ? "disabled" : "")">
+                                <a class="page-link rounded-start-pill px-3" asp-page="./Index"
+                                   asp-route-PaginaAtual="@(Model.PaginaAtual - 1)"
+                                   asp-route-TermoBusca="@Model.TermoBusca"
+                                   asp-route-StatusFiltro="@Model.StatusFiltro"
+                                   asp-route-TamanhoPagina="@Model.TamanhoPagina">
+                                    <i class="bi bi-chevron-left me-1"></i> Anterior
+                                </a>
+                            </li>
+
+                            <!-- Primeira Página -->
+                            @if (Model.PaginaAtual > 3)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="./Index"
+                                       asp-route-PaginaAtual="1"
+                                       asp-route-TermoBusca="@Model.TermoBusca"
+                                       asp-route-StatusFiltro="@Model.StatusFiltro"
+                                       asp-route-TamanhoPagina="@Model.TamanhoPagina">1</a>
+                                </li>
+                                @if (Model.PaginaAtual > 4)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                            }
+
+                            <!-- Páginas Intermediárias (Janela de 2 para antes e depois) -->
+                            @for (int i = Math.Max(1, Model.PaginaAtual - 2); i <= Math.Min(Model.TotalPaginas, Model.PaginaAtual + 2); i++)
+                            {
+                                var paginaAtiva = i == Model.PaginaAtual;
+                                <li class="page-item @(paginaAtiva ? "active fw-bold" : "")">
+                                    <a class="page-link" asp-page="./Index"
+                                       asp-route-PaginaAtual="@i"
+                                       asp-route-TermoBusca="@Model.TermoBusca"
+                                       asp-route-StatusFiltro="@Model.StatusFiltro"
+                                       asp-route-TamanhoPagina="@Model.TamanhoPagina">@i</a>
+                                </li>
+                            }
+
+                            <!-- Última Página -->
+                            @if (Model.PaginaAtual < Model.TotalPaginas - 2)
+                            {
+                                @if (Model.PaginaAtual < Model.TotalPaginas - 3)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="./Index"
+                                       asp-route-PaginaAtual="@Model.TotalPaginas"
+                                       asp-route-TermoBusca="@Model.TermoBusca"
+                                       asp-route-StatusFiltro="@Model.StatusFiltro"
+                                       asp-route-TamanhoPagina="@Model.TamanhoPagina">@Model.TotalPaginas</a>
+                                </li>
+                            }
+
+                            <!-- Botão Próxima -->
+                            <li class="page-item @(Model.PaginaAtual == Model.TotalPaginas ? "disabled" : "")">
+                                <a class="page-link rounded-end-pill px-3" asp-page="./Index"
+                                   asp-route-PaginaAtual="@(Model.PaginaAtual + 1)"
+                                   asp-route-TermoBusca="@Model.TermoBusca"
+                                   asp-route-StatusFiltro="@Model.StatusFiltro"
+                                   asp-route-TamanhoPagina="@Model.TamanhoPagina">
+                                    Próxima <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+       
+    </div>
+</div>
+
+<!-- Modal Salvar (Criar / Editar) -->
+<div class="modal fade" id="modalCaboEleitoral" tabindex="-1" aria-labelledby="modalCaboEleitoralLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalCaboEleitoralLabel">Adicionar Cabo Eleitoral</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="formSalvarCabo" method="post" asp-page-handler="Salvar"
+                  asp-route-termoBusca="@Model.TermoBusca" asp-route-statusFiltro="@Model.StatusFiltro"
+                  asp-route-paginaAtual="@Model.PaginaAtual" asp-route-tamanhoPagina="@Model.TamanhoPagina">
+                <div class="modal-body py-4">
+                    <input type="hidden" asp-for="Input.Id" id="inputId" />
+                    <input type="hidden" asp-for="Input.Latitude" id="latInput" />
+                    <input type="hidden" asp-for="Input.Longitude" id="lngInput" />
+
+                    <!-- Informações Pessoais -->
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person me-1"></i> Dados Pessoais</h6>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Nome" class="form-label fw-medium text-dark">Nome Completo *</label>
+                        <input asp-for="Input.Nome" id="inputNome" class="form-control rounded-3" placeholder="Ex: Maria das Dores" required />
+                        <span asp-validation-for="Input.Nome" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.Telefone" class="form-label fw-medium text-dark">Telefone / WhatsApp</label>
+                            <input asp-for="Input.Telefone" id="inputTelefone" class="form-control rounded-3" placeholder="(00) 00000-0000" />
+                            <span asp-validation-for="Input.Telefone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.Email" class="form-label fw-medium text-dark">E-mail (Opcional)</label>
+                            <input asp-for="Input.Email" id="inputEmail" type="email" class="form-control rounded-3" placeholder="maria@email.com" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Profissão e Atuação -->
+                    <h6 class="fw-bold text-primary mt-3 mb-3"><i class="bi bi-briefcase me-1"></i> Atuação & Profissão</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Input.Profissao" class="form-label fw-medium text-dark">Profissão</label>
+                            <input asp-for="Input.Profissao" id="inputProfissao" class="form-control rounded-3" placeholder="Ex: Comerciante, Prof." />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Input.LocalTrabalho" class="form-label fw-medium text-dark">Local de Trabalho</label>
+                            <input asp-for="Input.LocalTrabalho" id="inputLocalTrabalho" class="form-control rounded-3" placeholder="Ex: Escola Municipal / Loja X" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Input.AreaInfluencia" class="form-label fw-medium text-dark">Área de Influência</label>
+                            <input asp-for="Input.AreaInfluencia" id="inputAreaInfluencia" class="form-control rounded-3" placeholder="Ex: Bairro Flexeiras / 1º Distrito" />
+                        </div>
+                    </div>
+
+                    <!-- Endereço -->
+                    <h6 class="fw-bold text-primary mt-3 mb-3"><i class="bi bi-geo-alt me-1"></i> Endereço Base</h6>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-8">
+                            <label asp-for="Input.Logradouro" class="form-label small fw-medium">Rua / Logradouro</label>
+                            <div class="input-group input-group-sm">
+                                <input asp-for="Input.Logradouro" id="logradouroInput" class="form-control" placeholder="Rua / Avenida" />
+                                @* <button type="button" class="btn btn-outline-secondary" onclick="buscarPorLogradouro()">
+                                    <i class="bi bi-search"></i> Buscar
+                                </button> *@
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Input.Cep" class="form-label small fw-medium">CEP</label>
+                            <div class="input-group input-group-sm">
+                                <input asp-for="Input.Cep" id="cepInput" class="form-control" placeholder="00000-000" maxlength="9" />
+                                <button type="button" class="btn btn-outline-primary" onclick="buscarPorCep()">
+                                    <i class="bi bi-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label asp-for="Input.Numero" class="form-label small fw-medium">Número</label>
+                            <input asp-for="Input.Numero" id="numeroInput" class="form-control form-control-sm" placeholder="123" />
+                        </div>
+                        <div class="col-8">
+                            <label asp-for="Input.Complemento" class="form-label small fw-medium">Complemento</label>
+                            <input asp-for="Input.Complemento" id="complementoInput" class="form-control form-control-sm" placeholder="Apt, Bloco, etc." />
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-5">
+                            <label asp-for="Input.Bairro" class="form-label small fw-medium">Bairro</label>
+                            <input asp-for="Input.Bairro" id="bairroInput" class="form-control form-control-sm" placeholder="Bairro" />
+                        </div>
+                        <div class="col-5">
+                            <label asp-for="Input.Cidade" class="form-label small fw-medium">Cidade</label>
+                            <input asp-for="Input.Cidade" id="cidadeInput" class="form-control form-control-sm" placeholder="Cidade" />
+                        </div>
+                        <div class="col-2">
+                            <label asp-for="Input.Uf" class="form-label small fw-medium">UF</label>
+                            <input asp-for="Input.Uf" id="ufInput" class="form-control form-control-sm" placeholder="RJ" maxlength="2" />
+                        </div>
+                    </div>
+
+                    <div id="geoStatus" class="small text-muted mb-2"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 fw-medium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" id="btnSalvar" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        let modalCaboEleitoral;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            modalCaboEleitoral = new bootstrap.Modal(document.getElementById('modalCaboEleitoral'));
+
+            // Manipulador para remoção com confirmação via SweetAlert2
+            const formsRemover = document.querySelectorAll('.form-remover');
+            formsRemover.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const nomeItem = this.getAttribute('data-nome') || 'este item';
+
+                    Swal.fire({
+                        title: 'Tem certeza?',
+                        text: `Você está prestes a remover "${nomeItem}".`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Sim, remover!',
+                        cancelButtonText: 'Cancelar',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            this.submit();
+                        }
+                    });
+                });
+            });
+
+            // Prevenção de duplo submit no formulário principal
+            const formSalvar = document.getElementById('formSalvarCabo');
+            if (formSalvar) {
+                formSalvar.addEventListener('submit', function() {
+                    const btn = document.getElementById('btnSalvar');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Salvando...';
+                    }
+                });
+            }
+        });
+
+        function limparCamposEndereco(manterCep = false, manterLogradouro = false) {
+            if (!manterCep) document.getElementById('cepInput').value = '';
+            if (!manterLogradouro) document.getElementById('logradouroInput').value = '';
+
+            document.getElementById('numeroInput').value = '';
+            document.getElementById('complementoInput').value = '';
+            document.getElementById('bairroInput').value = '';
+            document.getElementById('cidadeInput').value = 'Magé';
+            document.getElementById('ufInput').value = 'RJ';
+            document.getElementById('latInput').value = '';
+            document.getElementById('lngInput').value = '';
+        }
+
+        function abrirModalNovo() {
+            document.getElementById('modalCaboEleitoralLabel').innerText = "Adicionar Cabo Eleitoral";
+            document.getElementById('inputId').value = "";
+            document.getElementById('inputNome').value = "";
+            document.getElementById('inputEmail').value = "";
+            document.getElementById('inputTelefone').value = "";
+            document.getElementById('inputProfissao').value = "";
+            document.getElementById('inputLocalTrabalho').value = "";
+            document.getElementById('inputAreaInfluencia').value = "";
+            
+            limparCamposEndereco();
+            document.getElementById('geoStatus').innerHTML = '';
+
+            const btn = document.getElementById('btnSalvar');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Salvar';
+            }
+
+            modalCaboEleitoral.show();
+        }
+
+        function abrirModalEditar(item) {
+            document.getElementById('modalCaboEleitoralLabel').innerText = "Editar Cabo Eleitoral";
+            document.getElementById('inputId').value = item.Id || item.id || "";
+            document.getElementById('inputNome').value = item.Nome || item.nome || "";
+            document.getElementById('inputEmail').value = item.Email || item.email || "";
+            document.getElementById('inputTelefone').value = item.Telefone || item.telefone || "";
+            document.getElementById('inputProfissao').value = item.Profissao || item.profissao || "";
+            document.getElementById('inputLocalTrabalho').value = item.LocalTrabalho || item.localTrabalho || "";
+            document.getElementById('inputAreaInfluencia').value = item.AreaInfluencia || item.areaInfluencia || "";
+
+            document.getElementById('cepInput').value = item.Cep || item.cep || "";
+            document.getElementById('logradouroInput').value = item.Logradouro || item.logradouro || "";
+            document.getElementById('numeroInput').value = item.Numero || item.numero || "";
+            document.getElementById('complementoInput').value = item.Complemento || item.complemento || "";
+            document.getElementById('bairroInput').value = item.Bairro || item.bairro || "";
+            document.getElementById('cidadeInput').value = item.Cidade || item.cidade || "Magé";
+            document.getElementById('ufInput').value = item.Uf || item.uf || "RJ";
+            document.getElementById('latInput').value = item.Latitude || item.latitude || "";
+            document.getElementById('lngInput').value = item.Longitude || item.longitude || "";
+
+            document.getElementById('geoStatus').innerHTML = '';
+
+            const btn = document.getElementById('btnSalvar');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = 'Salvar';
+            }
+
+            modalCaboEleitoral.show();
+        }
+
+        async function buscarPorCep() {
+            const status = document.getElementById('geoStatus');
+            const cepRaw = document.getElementById('cepInput')?.value || '';
+            const cep = cepRaw.replace(/\D/g, '');
+
+            if (!cep) {
+                Swal.fire('Atenção', 'Informe o CEP para realizar a busca.', 'warning');
+                return;
+            }
+
+            limparCamposEndereco(true, false);
+            status.innerHTML = '<span class="text-info"><i class="spinner-border spinner-border-sm me-1"></i> Buscando CEP...</span>';
+
+            try {
+                const response = await fetch(`?handler=BuscarCoordenadas&cep=${encodeURIComponent(cep)}`);
+                if (!response.ok) throw new Error('Erro na requisição');
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.logradouro) document.getElementById('logradouroInput').value = data.logradouro;
+                    if (data.bairro) document.getElementById('bairroInput').value = data.bairro;
+                    if (data.cidade) document.getElementById('cidadeInput').value = data.cidade;
+                    if (data.uf) document.getElementById('ufInput').value = data.uf;
+                    if (data.cep) document.getElementById('cepInput').value = data.cep;
+                    if (data.lat !== undefined && data.lat !== null) document.getElementById('latInput').value = data.lat;
+                    if (data.lng !== undefined && data.lng !== null) document.getElementById('lngInput').value = data.lng;
+
+                    status.innerHTML = '<span class="text-success fw-bold">✓ Endereço localizado via CEP!</span>';
+                } else {
+                    status.innerHTML = `<span class="text-danger">⚠️ ${data.message || 'Endereço não encontrado.'}</span>`;
+                }
+            } catch {
+                status.innerHTML = '<span class="text-danger">⚠️ Erro ao consultar o serviço de CEP.</span>';
+            }
+        }
+
+        async function buscarPorLogradouro() {
+            const status = document.getElementById('geoStatus');
+            const logradouro = document.getElementById('logradouroInput')?.value?.trim() || '';
+            const cidade = document.getElementById('cidadeInput')?.value || 'Magé';
+            const uf = document.getElementById('ufInput')?.value || 'RJ';
+
+            if (!logradouro) {
+                Swal.fire('Atenção', 'Informe o Logradouro para realizar a busca.', 'warning');
+                return;
+            }
+
+            limparCamposEndereco(false, true);
+            status.innerHTML = '<span class="text-info"><i class="spinner-border spinner-border-sm me-1"></i> Buscando Logradouro...</span>';
+
+            try {
+                const params = new URLSearchParams({ logradouro, cidade, uf });
+                const response = await fetch(`?handler=BuscarCoordenadas&${params.toString()}`);
+                if (!response.ok) throw new Error('Erro na requisição');
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.bairro) document.getElementById('bairroInput').value = data.bairro;
+                    if (data.cep) document.getElementById('cepInput').value = data.cep;
+                    if (data.lat !== undefined && data.lat !== null) document.getElementById('latInput').value = data.lat;
+                    if (data.lng !== undefined && data.lng !== null) document.getElementById('lngInput').value = data.lng;
+
+                    status.innerHTML = '<span class="text-success fw-bold">✓ Endereço localizado!</span>';
+                } else {
+                    status.innerHTML = `<span class="text-danger">⚠️ ${data.message || 'Logradouro não localizado.'}</span>`;
+                }
+            } catch {
+                status.innerHTML = '<span class="text-danger">⚠️ Erro ao consultar o serviço de endereço.</span>';
+            }
+        }
+    </script>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: '@TempData["SuccessMessage"]',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            });
+        </script>
+    }
+}

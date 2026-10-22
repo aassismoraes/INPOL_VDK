@@ -1,0 +1,181 @@
+﻿@page
+@model WebApp.Pages.Mapa.IndexModel
+@{
+    ViewData["Title"] = "Mapa Temático por Localidade";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    #mapaCalor {
+        height: 650px;
+        width: 100%;
+        background-color: #f8f9fa;
+    }
+
+    .info-legend {
+        padding: 8px 12px;
+        font: 12px/14px Arial, Helvetica, sans-serif;
+        background: white;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 5px;
+        line-height: 18px;
+        color: #555;
+    }
+
+        .info-legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-primary">
+            <i class="bi bi-geo-alt-fill me-2"></i>Mapa Temático por Localidade
+        </h4>
+        <small class="text-muted">Distribuição por distritos/bairros do município</small>
+    </div>
+
+    <div class="btn-group shadow-sm" role="group" id="btnGroupTipo">
+        <button type="button" class="btn btn-outline-primary active fw-semibold" data-tipo="demandas">
+            <i class="bi bi-clipboard-check me-1"></i> Demandas
+        </button>
+        <button type="button" class="btn btn-outline-primary fw-semibold" data-tipo="eventos">
+            <i class="bi bi-calendar-event me-1"></i> Eventos
+        </button>
+        <button type="button" class="btn btn-outline-primary fw-semibold" data-tipo="apoiadores">
+            <i class="bi bi-people me-1"></i> Apoiadores
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+    <div id="mapaCalor"></div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        // Código IBGE Padrão (Exemplo: 3302502 - Magé/RJ). Pode vir do perfil do usuário/filtro.
+        const codigoIbgeMunicipio = "3302502";
+
+        const map = L.map('mapaCalor').setView([-22.6531, -43.0412], 11);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap &copy; IBGE'
+        }).addTo(map);
+
+        let geojsonLayer = null;
+        let dadosContagem = {};
+
+        // Função para remover acentos e padronizar comparação de strings
+        function normalizar(texto) {
+        if (!texto) return "";
+        return texto.toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+        }
+
+        // Escala de cores baseada na intensidade de registros
+        function getColor(d) {
+        return d > 50 ? '#800026' :
+        d > 20 ? '#BD0026' :
+        d > 10 ? '#E31A1C' :
+        d > 5  ? '#FC4E2A' :
+        d > 2  ? '#FD8D3C' :
+        d > 0  ? '#FEB24C' :
+        '#FFEDA0';
+        }
+
+        function styleFeature(feature) {
+        const nomeDistrito = feature.properties.name || feature.properties.NM_SUBDIST || feature.properties.NM_DISTRI || "";
+        const total = dadosContagem[normalizar(nomeDistrito)] || 0;
+
+        return {
+        fillColor: getColor(total),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+        };
+        }
+
+        function carregarMapaTematico(tipo) {
+        // 1. Busca os dados de contagem no backend .NET
+        fetch(`?handler=Dados&tipo=${tipo}&ibge=${codigoIbgeMunicipio}`)
+        .then(res => res.json())
+        .then(dadosBackend => {
+        dadosContagem = {};
+        dadosBackend.forEach(item => {
+        if (item.bairro) {
+        dadosContagem[normalizar(item.bairro)] = item.total;
+        }
+        });
+
+        // 2. Busca a malha oficial GeoJSON no IBGE
+        return fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIbgeMunicipio}?subdistritos=true&formato=application/vnd.geo+json`);
+        })
+        .then(res => res.json())
+        .then(geoJsonIBGE => {
+        if (geojsonLayer) {
+        map.removeLayer(geojsonLayer);
+        }
+
+        geojsonLayer = L.geoJson(geoJsonIBGE, {
+        style: styleFeature,
+        onEachFeature: function (feature, layer) {
+        const nome = feature.properties.name || feature.properties.NM_SUBDIST || feature.properties.NM_DISTRI || "Região";
+        const total = dadosContagem[normalizar(nome)] || 0;
+
+        layer.bindTooltip(`
+        <div class="text-center p-1">
+        <strong>${nome}</strong><br/>
+        <span class="badge bg-primary fs-6 mt-1">${total} registros</span>
+        </div>
+        `, { sticky: true });
+
+        layer.on({
+        mouseover: (e) => {
+        const l = e.target;
+        l.setStyle({ weight: 4, color: '#666', fillOpacity: 0.9 });
+        l.bringToFront();
+        },
+        mouseout: (e) => {
+        geojsonLayer.resetStyle(e.target);
+        }
+        });
+        }
+        }).addTo(map);
+
+        const bounds = geojsonLayer.getBounds();
+        if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [30, 30] });
+        }
+        })
+        .catch(err => console.error("Erro ao carregar mapa temático:", err));
+        }
+
+        carregarMapaCalor = carregarMapaTematico;
+        carregarMapaTematico('demandas');
+
+        document.querySelectorAll('#btnGroupTipo button').forEach(button => {
+        button.addEventListener('click', function () {
+        document.querySelectorAll('#btnGroupTipo button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        carregarMapaTematico(this.getAttribute('data-tipo'));
+        });
+        });
+        });
+    </script>
+}

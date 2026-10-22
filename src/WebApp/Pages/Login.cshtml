@@ -1,0 +1,122 @@
+﻿@page
+@model WebApp.Pages.LoginModel
+@{
+    Layout = null; // Remove a navegação padrão do _Layout.cshtml
+    ViewData["Title"] = "Acesso ao Sistema";
+    var returnUrl = ViewData["ReturnUrl"] as string ?? "/";
+}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - In|Pol</title>
+
+    <!-- Bootstrap CSS e Ícones -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+            body {
+                background-color: #f8f9fa;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+
+            .login-card {
+                max-width: 420px;
+                width: 100%;
+                border-radius: 1.25rem;
+            }
+
+            .btn-google {
+                background-color: #ffffff;
+                color: #1f1f1f;
+                border: 1px solid #747775;
+                transition: all 0.2s ease-in-out;
+            }
+
+                .btn-google:hover {
+                    background-color: #f8f9fa;
+                    border-color: #1f1f1f;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
+
+    <div class="login-card card border-0 shadow-sm bg-white p-4 p-md-5 text-center">
+        <!-- Brand / Logo -->
+        <div class="mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-3 mb-2 px-3 py-2">
+                <i class="bi bi-box-fill fs-3 me-2"></i>
+                <span class="fw-bold fs-3 tracking-wide">In|Pol</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Gestão de Gabinete</h5>
+            <small class="text-muted">Acesse a plataforma para gerenciar demandas, agenda e apoiadores.</small>
+        </div>
+
+        <hr class="my-4 opacity-10" />
+
+        <!-- Botão de Autenticação com o Google -->
+        <div class="mb-4">
+            <a href="/Account/LoginGoogle?returnUrl=@Uri.EscapeDataString(returnUrl)"
+               class="btn btn-google btn-lg rounded-pill w-100 fw-bold py-3 fs-6 d-flex align-items-center justify-content-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                </svg>
+                Entrar com o Google
+            </a>
+        </div>
+
+        <div class="alert alert-light border-0 bg-light rounded-3 p-3 mb-0">
+            <small class="text-muted d-block lh-sm">
+                <i class="bi bi-shield-check text-primary me-1"></i>
+                Apenas e-mails previamente cadastrados pela administração do gabinete possuem permissão de acesso.
+            </small>
+        </div>
+
+        <div class="mt-4 pt-2">
+            <small class="text-muted" style="font-size: 0.75rem;">&copy; @DateTime.Now.Year In|Pol. Todos os direitos reservados.</small>
+        </div>
+    </div>
+
+    <!-- Scripts do Bootstrap e SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Dispara o modal caso o usuário venha de um Logout -->
+    @if (Model.Deslogado || Request.Query["deslogado"] == "true")
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+            Swal.fire({
+            title: 'Desconectado!',
+            text: 'Sua sessão foi encerrada com sucesso.',
+            icon: 'info',
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'OK'
+            });
+            });
+        </script>
+    }
+
+    <!-- Dispara o modal caso haja erro de autorização ou acesso negado -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+            Swal.fire({
+            title: 'Acesso Negado',
+            text: '@Html.Raw(TempData["ErrorMessage"])',
+            icon: 'error',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Entendido'
+            });
+            });
+        </script>
+    }
+</body>
+</html>
