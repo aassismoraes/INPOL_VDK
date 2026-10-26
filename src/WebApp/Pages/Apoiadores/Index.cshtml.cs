@@ -134,7 +134,7 @@ namespace WebApp.Pages.Apoiadores
             Apoiadores = await (from a in query
                                 join p in _context.CabosEleitorais on a.PadrinhoId equals p.Id into padrinhosGroup
                                 from padrinho in padrinhosGroup.DefaultIfEmpty()
-                                orderby a.Nome
+                                orderby a.AtualizadoEm descending, a.CriadoEm descending
                                 select new ApoiadorItemDto
                                 {
                                     Id = a.Id,

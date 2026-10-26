@@ -24,13 +24,13 @@
         color: #555;
     }
 
-        .info-legend i {
-            width: 18px;
-            height: 18px;
-            float: left;
-            margin-right: 8px;
-            opacity: 0.7;
-        }
+    .info-legend i {
+        width: 18px;
+        height: 18px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.7;
+    }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -63,119 +63,126 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-        // Código IBGE Padrão (Exemplo: 3302502 - Magé/RJ). Pode vir do perfil do usuário/filtro.
-        const codigoIbgeMunicipio = "3302502";
+            // Código IBGE de Magé/RJ
+            const codigoIbgeMunicipio = "3302502"; 
 
-        const map = L.map('mapaCalor').setView([-22.6531, -43.0412], 11);
+            // TRADUTOR: Código IBGE -> Nome na sua Base de Dados
+            // Mapeia os códigos oficiais do IBGE para os nomes populares guardados no seu MySQL
+            const dicionarioIbgeMage = {
+                "330250205": "MAGE",
+                "330250210": "MAUA",           // Oficial: Guia de Pacobaíba
+                "330250215": "SANTO ALEIXO",
+                "330250220": "SURUI",
+                "330250225": "PIABETA",        // Oficial: Vila Inhomirim
+                "330250230": "RIO DO OURO"
+            };
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap &copy; IBGE'
-        }).addTo(map);
+            const map = L.map('mapaCalor').setView([-22.6531, -43.0412], 11);
 
-        let geojsonLayer = null;
-        let dadosContagem = {};
+            // Camada de mapa gratuita e oficial do OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; IBGE'
+            }).addTo(map);
 
-        // Função para remover acentos e padronizar comparação de strings
-        function normalizar(texto) {
-        if (!texto) return "";
-        return texto.toString()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
-        }
+            let geojsonLayer = null;
+            let dadosContagem = {};
 
-        // Escala de cores baseada na intensidade de registros
-        function getColor(d) {
-        return d > 50 ? '#800026' :
-        d > 20 ? '#BD0026' :
-        d > 10 ? '#E31A1C' :
-        d > 5  ? '#FC4E2A' :
-        d > 2  ? '#FD8D3C' :
-        d > 0  ? '#FEB24C' :
-        '#FFEDA0';
-        }
+            function normalizar(texto) {
+                if (!texto) return "";
+                return texto.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+            }
 
-        function styleFeature(feature) {
-        const nomeDistrito = feature.properties.name || feature.properties.NM_SUBDIST || feature.properties.NM_DISTRI || "";
-        const total = dadosContagem[normalizar(nomeDistrito)] || 0;
+            function getColor(d) {
+                return d > 50 ? '#800026' :
+                       d > 20 ? '#BD0026' :
+                       d > 10 ? '#E31A1C' :
+                       d > 5  ? '#FC4E2A' :
+                       d > 2  ? '#FD8D3C' :
+                       d > 0  ? '#FEB24C' :
+                                '#FFEDA0';
+            }
 
-        return {
-        fillColor: getColor(total),
-        weight: 2,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
-        fillOpacity: 0.7
-        };
-        }
+            function getNomeDistrito(feature) {
+                const codArea = feature.properties.codarea; 
+                if (codArea && dicionarioIbgeMage[codArea]) {
+                    return dicionarioIbgeMage[codArea];
+                }
+                return feature.properties.name || feature.properties.NM_SUBDIST || feature.properties.NM_DISTRI || "Região";
+            }
 
-        function carregarMapaTematico(tipo) {
-        // 1. Busca os dados de contagem no backend .NET
-        fetch(`?handler=Dados&tipo=${tipo}&ibge=${codigoIbgeMunicipio}`)
-        .then(res => res.json())
-        .then(dadosBackend => {
-        dadosContagem = {};
-        dadosBackend.forEach(item => {
-        if (item.bairro) {
-        dadosContagem[normalizar(item.bairro)] = item.total;
-        }
-        });
+            function styleFeature(feature) {
+                const nomeDistrito = getNomeDistrito(feature);
+                const total = dadosContagem[normalizar(nomeDistrito)] || 0;
 
-        // 2. Busca a malha oficial GeoJSON no IBGE
-        return fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIbgeMunicipio}?subdistritos=true&formato=application/vnd.geo+json`);
-        })
-        .then(res => res.json())
-        .then(geoJsonIBGE => {
-        if (geojsonLayer) {
-        map.removeLayer(geojsonLayer);
-        }
+                return {
+                    fillColor: getColor(total),
+                    weight: 2,
+                    opacity: 1,
+                    color: 'white',
+                    dashArray: '3',
+                    fillOpacity: 0.7
+                };
+            }
 
-        geojsonLayer = L.geoJson(geoJsonIBGE, {
-        style: styleFeature,
-        onEachFeature: function (feature, layer) {
-        const nome = feature.properties.name || feature.properties.NM_SUBDIST || feature.properties.NM_DISTRI || "Região";
-        const total = dadosContagem[normalizar(nome)] || 0;
+            function carregarMapaTematico(tipo) {
+                fetch(`?handler=Dados&tipo=${tipo}&ibge=${codigoIbgeMunicipio}`)
+                    .then(res => res.json())
+                    .then(dadosBackend => {
+                        dadosContagem = {};
+                        dadosBackend.forEach(item => {
+                            const nomeLocalidade = item.bairro || item.Bairro;
+                            if (nomeLocalidade) {
+                                dadosContagem[normalizar(nomeLocalidade)] = item.total;
+                            }
+                        });
 
-        layer.bindTooltip(`
-        <div class="text-center p-1">
-        <strong>${nome}</strong><br/>
-        <span class="badge bg-primary fs-6 mt-1">${total} registros</span>
-        </div>
-        `, { sticky: true });
+                        return fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIbgeMunicipio}?subdistritos=true&formato=application/vnd.geo+json`);
+                    })
+                    .then(res => res.json())
+                    .then(geoJsonIBGE => {
+                        if (geojsonLayer) { map.removeLayer(geojsonLayer); }
 
-        layer.on({
-        mouseover: (e) => {
-        const l = e.target;
-        l.setStyle({ weight: 4, color: '#666', fillOpacity: 0.9 });
-        l.bringToFront();
-        },
-        mouseout: (e) => {
-        geojsonLayer.resetStyle(e.target);
-        }
-        });
-        }
-        }).addTo(map);
+                        geojsonLayer = L.geoJson(geoJsonIBGE, {
+                            style: styleFeature,
+                            onEachFeature: function (feature, layer) {
+                                const nome = getNomeDistrito(feature);
+                                const total = dadosContagem[normalizar(nome)] || 0;
 
-        const bounds = geojsonLayer.getBounds();
-        if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [30, 30] });
-        }
-        })
-        .catch(err => console.error("Erro ao carregar mapa temático:", err));
-        }
+                                layer.bindTooltip(`
+                                    <div class="text-center p-1">
+                                        <strong>${nome}</strong><br/>
+                                        <span class="badge bg-primary fs-6 mt-1">${total} registros</span>
+                                    </div>
+                                `, { sticky: true });
 
-        carregarMapaCalor = carregarMapaTematico;
-        carregarMapaTematico('demandas');
+                                layer.on({
+                                    mouseover: (e) => {
+                                        const l = e.target;
+                                        l.setStyle({ weight: 4, color: '#666', fillOpacity: 0.9 });
+                                        l.bringToFront();
+                                    },
+                                    mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
+                                });
+                            }
+                        }).addTo(map);
 
-        document.querySelectorAll('#btnGroupTipo button').forEach(button => {
-        button.addEventListener('click', function () {
-        document.querySelectorAll('#btnGroupTipo button').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        carregarMapaTematico(this.getAttribute('data-tipo'));
-        });
-        });
+                        const bounds = geojsonLayer.getBounds();
+                        if (bounds.isValid()) { map.fitBounds(bounds, { padding: [30, 30] }); }
+                    })
+                    .catch(err => console.error("Erro ao carregar mapa temático:", err));
+            }
+
+            // Inicia carregando as demandas por padrão
+            carregarMapaTematico('demandas');
+
+            document.querySelectorAll('#btnGroupTipo button').forEach(button => {
+                button.addEventListener('click', function () {
+                    document.querySelectorAll('#btnGroupTipo button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    carregarMapaTematico(this.getAttribute('data-tipo'));
+                });
+            });
         });
     </script>
 }
